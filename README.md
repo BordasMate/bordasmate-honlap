@@ -1,15 +1,22 @@
 # Bordás Máté – alkotói honlap
 
 Statikus honlap, build lépés nélkül. A felület egy valós időben számolt
-WebGL2-shader: sötét, folyékony fémtükör, rajta krómos, irizáló, bordázott
-peremű sejtek. A tartalmat hordozó sejtek egymáshoz préselődnek (közös,
-ívelt határvonallal), és a vízfelszínen sodródva folyamatosan lökdösik
-egymást. Oldalváltáskor a közös sejtek (pl. a kategória) átúsznak az új
-helyükre, a többi elmerül vagy felbukkan.
+WebGL2-kép, két lépésben:
+
+1. **Jelenet:** folyékony fémtükör, rajta krómos, bordázott peremű sejtek.
+   A tartalmat hordozó sejtek egymáshoz préselődnek (közös, ívelt
+   határvonallal), és a vízfelszínen sodródva lökdösik egymást. Mögöttük és
+   előttük különböző mélységben fazettás kristályok úsznak, a víz alatt
+   elmosódott kristályszilánkok; egérmozgásra a rétegek parallaxisban
+   elmozdulnak.
+2. **Utófeldolgozás:** élsimítás, mélységélesség, ragyogás, időnkénti
+   glitch-villanások (szeletcsúszás, függőleges elkenődés, háromszög-mozaik,
+   blokkeltolódás), oldalváltáskor erősebb glitch. Az almenük fekete-fehérek,
+   a nyitóoldal színes.
 
 WebGL2 nélküli böngészőben egyszerű, sötét linklista jelenik meg.
 Ha a gép lassú, a felbontás magától csökken; „csökkentett mozgás”
-beállítás mellett a sejtek nem sodródnak.
+beállítás mellett nincs sodródás és glitch.
 
 ## Tartalom szerkesztése
 
@@ -53,10 +60,11 @@ css/fonts.css       saját tárhelyről betöltött betűk
 fonts/              Syne és Literata (SIL Open Font License)
 js/content.js       ← a tartalom
 js/main.js          útvonalak, jelenetek összeállítása
-js/organism.js      shader, sejtfizika, feliratok követése
+js/organism.js      shaderek, sejtfizika, glitch, feliratok követése
 netlify.toml        Netlify beállítás
 ```
 
-Fémtónusok (`palette` mező): `titan`, `rez`, `kobalt`, `zoldarany`.
-A színek a `js/organism.js` `TINT_DATA` és `GLOW_DATA` tömbjében
-hangolhatók.
+Fémtónusok (`palette` mező, a nyitóoldalon látszanak): `titan`, `rez`,
+`kobalt`, `zoldarany`. A színek a `js/organism.js` elején hangolhatók
+(`TINT_DATA`, `GLOW_DATA`, `ENV_HOME`, `DEEP_HOME`); a glitch gyakorisága a
+`G.next` sorban (jelenleg 1,6–6,2 másodpercenként).

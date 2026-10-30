@@ -59,6 +59,24 @@ a.cell-label:focus-visible { box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); }
 .cell-label[data-kind="name"] { color: #f6f5f1; }
 .cell-label.gone { opacity: 0 !important; pointer-events: none; }
 
+/* glitch a feliratokon (rövid villanás, amikor a kép glitch-el) */
+.cell-label.glitch {
+  animation: label-glitch .09s steps(2, end) infinite;
+  translate: var(--gx, 4px) 0;
+}
+@keyframes label-glitch {
+  0%   { clip-path: inset(0 0 52% 0); text-shadow: -3px 0 rgba(255, 40, 190, .85), 3px 0 rgba(30, 220, 255, .85), 0 0 12px #000; }
+  50%  { clip-path: inset(38% 0 0 0); text-shadow: 4px 0 rgba(255, 40, 190, .85), -4px 0 rgba(30, 220, 255, .85), 0 0 12px #000; }
+  100% { clip-path: inset(0 0 0 0);  text-shadow: -2px 0 rgba(255, 40, 190, .6), 2px 0 rgba(30, 220, 255, .6), 0 0 12px #000; }
+}
+html.mono .cell-label.glitch { animation-name: label-glitch-mono; }
+@keyframes label-glitch-mono {
+  0%   { clip-path: inset(0 0 52% 0); text-shadow: -3px 0 rgba(255, 255, 255, .55), 3px 0 rgba(120, 120, 120, .7), 0 0 12px #000; }
+  50%  { clip-path: inset(38% 0 0 0); text-shadow: 4px 0 rgba(255, 255, 255, .55), -4px 0 rgba(120, 120, 120, .7), 0 0 12px #000; }
+  100% { clip-path: inset(0 0 0 0);  text-shadow: -2px 0 rgba(255, 255, 255, .4), 2px 0 rgba(120, 120, 120, .5), 0 0 12px #000; }
+}
+@media (prefers-reduced-motion: reduce) { .cell-label.glitch { animation: none; translate: none; } }
+
 /* ---------- műoldal szövegpanel ---------- */
 
 #panel {

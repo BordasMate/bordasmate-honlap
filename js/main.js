@@ -43,9 +43,10 @@ function sizes(W) {
   };
 }
 
-function drifters(tint, W) {
-  const n = W < 640 ? 4 : 7;
-  return Array.from({ length: n }, (_, i) => ({ key: "drift" + i, kind: "drift", tint, r: (W < 640 ? 14 : 20) + ((i * 37) % 23) }));
+// lebegő kristályok különböző mélységben (a mélységet a sorszám adja, l. organism.js)
+function drifters(tint, W, multi = false) {
+  const n = W < 640 ? 6 : 9;
+  return Array.from({ length: n }, (_, i) => ({ key: "drift" + i, kind: "drift", tint: multi ? [0, 1, 2][i % 3] : tint, r: (W < 640 ? 15 : 20) + ((i * 37) % 21) }));
 }
 
 const homeItem = (z) => ({ key: "/", label: site.name, href: link("/"), kind: "nav", tint: tintOf(site.palette), size: z.nav, minR: z.minNav });
@@ -59,7 +60,7 @@ function sceneFor(r, W, H) {
       items: [
         { key: "/", label: site.name, kind: "name", tint: t, size: z.name, minR: z.narrow ? 100 : 130 },
         ...site.categories.map((c) => ({ key: "/" + c.slug, label: c.title, href: link("/" + c.slug), kind: "child", upper: true, tint: tintOf(c.palette), size: z.center, minR: z.minChild * 1.9 })),
-        ...drifters(t, W),
+        ...drifters(t, W, true),
       ],
       cx: W / 2, cy: H * (z.narrow ? 0.34 : 0.4),
       startAngle: Math.PI / 2, spread: site.categories.length > 2 ? Math.PI * 1.1 : Math.PI * 0.55,
@@ -105,7 +106,7 @@ function sceneFor(r, W, H) {
         { key: "/" + cat.slug, label: cat.title, href: link("/" + cat.slug), kind: "nav", tint: t, size: z.nav, minR: z.minNav },
         homeItem(z),
         ...(sub.works || []).filter((w) => w !== work).map((w) => ({ key: `${base}/${w.slug}`, label: w.title, href: link(`${base}/${w.slug}`), kind: "child", tint: t, size: z.child * 0.8, minR: z.minChild * 0.75 })),
-        ...drifters(t, W).slice(0, z.narrow ? 2 : 4),
+        ...drifters(t, W).slice(0, z.narrow ? 4 : 7),
       ],
       startAngle: z.narrow ? -Math.PI / 2 : Math.PI,
     };
@@ -166,6 +167,7 @@ function render() {
   document.title = sc.title;
   a11y.innerHTML = `<h1>${esc(sc.h1)}</h1><nav aria-label="Oldalak"><ul>${a11yLinks(r)}</ul></nav>`;
 
+  sc.mono = r.type !== "home";
   if (org) org.setScene(sc);
   else cells.innerHTML = `<div class="fallback"><p class="fb-name">${esc(site.name)}</p><ul>${a11yLinks(r)}</ul></div>`;
 
