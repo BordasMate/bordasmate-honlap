@@ -16,8 +16,9 @@ layout(location = 0) in vec2 aPos;
 void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
 
 const COMMON = `
-float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-vec2 hash2(vec2 p){ return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453); }
+// egyenletes eloszlású hash (nincs rácsmintázat a szemcsében)
+float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+vec2 hash2(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973)); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.xx + p3.yz) * p3.zy); }
 float noise(vec2 p){
   vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3.0-2.0*f);
   return mix(mix(hash(i), hash(i+vec2(1,0)), u.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), u.x), u.y);
@@ -43,6 +44,7 @@ uniform vec4 uTint[5];
 uniform vec3 uGlow[5];
 uniform vec3 uEnvTint, uDeepTint, uGemA, uGemB;
 uniform vec2 uCam, uFocus;
+uniform float uRough;
 ${COMMON}
 float sdRBox(vec2 p, vec2 b, float r){ vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
 float smin(float a, float b, float k){ float h = clamp(0.5 + 0.5*(b-a)/k, 0.0, 1.0); return mix(b, a, h) - k*h*(1.0-h); }
@@ -238,9 +240,23 @@ void main(){
   vec3 col; float coc;
   vec3 gn; float gin, gfe, gz, gi;
   if (isCell) {
-    vec3 n = normalize(vec3(-g * 18.0, 1.0));
     int ti = int(A.y + 0.5);
+    // a textúra a sejthez rögzül, vele együtt úszik
+    vec2 lc = p - (F.y < 98.0 ? uB[int(F.y)].xy : uPanel.xy);
+    float sd = A.w * 50.0;
+    vec2 bump = (vec2(noise(lc * 0.42 + sd), noise(lc * 0.42 + vec2(17.3, 9.1) + sd)) - 0.5) * 0.2
+              + (vec2(noise(lc * 1.1 + 7.0), noise(lc * 1.1 + vec2(3.1, 11.0))) - 0.5) * 0.16;
+    vec3 n = normalize(vec3(-g * 18.0 + bump * uRough, 1.0));
     col = metal(n, uTint[ti], h * 0.6 + uTime * 0.025 + A.w);
+    // rozsda a mélyedésekben és foltokban, apró kráterek, csiszolt csillanások
+    float speck = hash(floor(lc * 0.75 + sd * 2.0));
+    float rustM = smoothstep(0.45, 0.8, noise(lc * 0.022 + sd * 0.6));
+    float low = (1.0 - smoothstep(0.35, 0.95, h)) * (1.0 - (F0.z + F1.z + F2.z) / 3.0);
+    float rust = clamp(rustM * 0.7 + low * 0.45, 0.0, 1.0) * uRough;
+    vec3 rustCol = vec3(0.45, 0.17, 0.06) * (0.55 + 0.9 * noise(lc * 0.3 + sd));
+    col = mix(col, rustCol * (0.35 + 1.1 * luma(col)), rust * 0.32);
+    col *= 1.0 - 0.5 * step(speck, (0.025 + 0.11 * rust) * uRough) * (1.0 - 0.8 * (F0.z + F1.z + F2.z) / 3.0);
+    col += vec3(0.55) * step(1.0 - 0.012 * uRough, speck) * (1.0 - rust);
     float sock = (F0.z + F1.z + F2.z) / 3.0;
     col = mix(col, col * 0.1 + vec3(0.006), sock * 0.88);
     col *= 0.35 + 0.65 * smoothstep(0.0, 6.0, bd);
@@ -289,7 +305,8 @@ out vec4 outColor;
 uniform sampler2D uTex;
 uniform vec2 uRes;
 uniform float uScale, uTime, uMono, uGlitch, uGSeed, uDofK;
-uniform vec4 uGRect, uGType;
+uniform vec4 uGRect, uGType, uGType2;
+uniform float uGrain;
 ${COMMON}
 vec2 toUV(vec2 pc){ return vec2(pc.x * uScale / uRes.x, 1.0 - pc.y * uScale / uRes.y); }
 vec4 T(vec2 uv){ return textureLod(uTex, uv, 0.0); }
@@ -355,6 +372,23 @@ void main(){
         vec2 back = vec2(cen.x + cen.y * 0.5, cen.y * 0.8660254) * sz;
         if (hash(ci + up * 17.0 + uGSeed) < 0.78) s = back + (hash2(ci + up * 3.0 + uGSeed) - 0.5) * sz * 0.55;
       }
+      // pixelmozaik
+      if (uGType2.x > 0.0) {
+        float ps = 5.0 + 13.0 * hash(vec2(uGSeed, 2.0));
+        vec2 cell = floor(s / ps);
+        if (hash(cell * 0.13 + floor(uGSeed)) < 0.85) s = (cell + 0.5) * ps;
+      }
+      // képszakadás és -gördülés
+      if (uGType2.y > 0.0) {
+        s.x += sin(pc.y * 0.045 + uGSeed * 3.0) * 14.0 * g;
+        float row = floor(pc.y / 3.0);
+        s.x += step(hash(vec2(row, uGSeed)), 0.06) * (hash(vec2(row, uGSeed + 4.0)) - 0.5) * 80.0 * g;
+        float H = uRes.y / uScale;
+        s.y = mod(s.y + hash(vec2(uGSeed, 11.0)) * H * 0.18 * g, H);
+        split = max(split, 2.5 * g);
+      }
+      // váltott soros kiesés
+      if (uGType2.w > 0.0 && mod(floor(fc.y), 2.0) < 1.0) { s.x += 6.0 * g; scan = max(scan, 1.6 * g); }
       suv = toUV(s);
     }
   }
@@ -399,7 +433,16 @@ void main(){
   }
   col += max(bl / 12.0 - 0.27, 0.0) * 1.15;
 
-  col *= 1.0 - 0.2 * scan * step(0.5, fract(fc.y * 0.5));
+  col *= 1.0 - 0.2 * min(scan, 1.0) * step(0.5, fract(fc.y * 0.5));
+  if (scan > 1.0) col *= 1.0 - 0.45 * step(0.5, fract(fc.y * 0.5));
+  // invertált, poszterizált sávok
+  if (uGlitch > 0.001 && uGType2.z > 0.0) {
+    float inR = step(uGRect.x, pc.x) * step(pc.x, uGRect.x + uGRect.z) * step(uGRect.y, pc.y) * step(pc.y, uGRect.y + uGRect.w);
+    float band = floor(pc.y / (6.0 + 40.0 * hash(vec2(uGSeed, 5.0))));
+    float hb = hash(vec2(band, uGSeed + 8.0));
+    if (inR > 0.0 && hb < 0.14) col = vec3(1.0) - col;
+    else if (inR > 0.0 && hb < 0.3) col = floor(col * 4.0 + 0.5) / 4.0;
+  }
 
   // monokróm (almenük)
   float L = luma(col);
@@ -407,7 +450,17 @@ void main(){
   col = mix(col, mono, uMono);
 
   col *= 1.0 - 0.5 * pow(length(cd) * 1.3, 2.4);
-  col += (hash(fc + fract(uTime * 7.3) * 113.0) - 0.5) * 0.035;
+  // alapszemcse: durva (kb. 1,6 px-es) és finom, a középtónusokban erősebb
+  float Lg = luma(col);
+  float gw = 0.45 + 0.55 * smoothstep(0.0, 0.35, Lg) * (1.0 - 0.5 * smoothstep(0.6, 1.0, Lg));
+  vec2 gp = floor(fc / max(1.0, 1.6 * uScale));
+  float frameN = floor(uTime * 24.0);
+  float coarse = hash(gp + frameN * 13.1) - 0.5;
+  float fine = hash(fc + fract(uTime * 7.3) * 113.0) - 0.5;
+  col += (coarse * 0.06 + fine * 0.035) * uGrain * gw;
+  // ritka por- és karcszemcsék
+  float dust = hash(floor(fc / max(1.0, 2.0 * uScale)) + frameN * 0.37);
+  col += step(0.9996, dust) * 0.3 * uGrain - step(dust, 0.0004) * 0.25 * uGrain;
   outColor = vec4(col, 1.0);
 }`;
 
@@ -489,8 +542,8 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     for (const n of names) U[n] = gl.getUniformLocation(p, n);
     return { p, U };
   };
-  const scene = program(SCENE, ["uRes", "uScale", "uTime", "uN", "uB", "uC", "uNG", "uG", "uGA", "uPanel", "uPanelOn", "uPanelTint", "uRimK", "uRip", "uTint", "uGlow", "uEnvTint", "uDeepTint", "uGemA", "uGemB", "uCam", "uFocus"]);
-  const post = program(POST, ["uTex", "uRes", "uScale", "uTime", "uMono", "uGlitch", "uGSeed", "uDofK", "uGRect", "uGType"]);
+  const scene = program(SCENE, ["uRes", "uScale", "uTime", "uN", "uB", "uC", "uNG", "uG", "uGA", "uPanel", "uPanelOn", "uPanelTint", "uRimK", "uRip", "uTint", "uGlow", "uEnvTint", "uDeepTint", "uGemA", "uGemB", "uCam", "uFocus", "uRough"]);
+  const post = program(POST, ["uTex", "uRes", "uScale", "uTime", "uMono", "uGlitch", "uGSeed", "uDofK", "uGRect", "uGType", "uGType2", "uGrain"]);
 
   const buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -552,10 +605,12 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
 
   /* ----- glitch ----- */
 
-  const G = { end: 0, next: performance.now() + 2600, rect: [0, 0, 0, 0], type: [0, 0, 0, 0], seed: 0, seedT: 0, power: 0, amt: 0 };
-  function burst({ full = false, power = 1, dur = null, types = null } = {}) {
+  const G = { end: 0, next: performance.now() + 2600, rect: [0, 0, 0, 0], type: [0, 0, 0, 0], type2: [0, 0, 0, 0], seed: 0, seedT: 0, power: 0, amt: 0 };
+  function burst({ full = null, power = 1, dur = null, types = null } = {}) {
     if (reduced) return;
     const now = performance.now();
+    // néha a teljes oldalt érinti
+    if (full === null) full = Math.random() < 0.28;
     G.end = now + (dur ?? 110 + Math.random() * 330);
     G.power = power;
     if (full) G.rect = [0, 0, W, H];
@@ -570,12 +625,16 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
         G.rect = [Math.random() * (W - w), Math.random() * (H - h), w, h];
       }
     }
-    if (types) G.type = types;
+    // típusok: 0 szelet, 1 elkenődés, 2 mozaik, 3 blokk | 4 pixel, 5 szakadás, 6 invertálás, 7 sorkiesés
+    const t = [0, 0, 0, 0, 0, 0, 0, 0];
+    if (types) types.forEach((v, i) => (t[i] = v));
     else {
-      G.type = [0, 0, 0, 0];
-      const n = Math.random() < 0.4 ? 2 : 1;
-      for (let i = 0; i < n; i++) G.type[Math.floor(Math.random() * 4)] = 1;
+      const pool = full ? [0, 0, 2, 4, 5, 5, 6, 7, 3] : [0, 1, 2, 3, 4, 6, 7];
+      const n = Math.random() < 0.45 ? 2 : 1;
+      for (let i = 0; i < n; i++) t[pool[Math.floor(Math.random() * pool.length)]] = 1;
+      if (full) G.end = now + 80 + Math.random() * 260;
     }
+    G.type = t.slice(0, 4); G.type2 = t.slice(4);
     const [rx, ry, rw, rh] = G.rect;
     for (const b of bodies.values()) {
       if (!b.el || b.kind === "drift") continue;
@@ -596,7 +655,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     const first = bodies.size === 0;
     monoTarget = scene.mono ? 1 : 0;
     document.documentElement.classList.toggle("mono", !!scene.mono);
-    if (!first) burst({ full: true, power: 1, dur: 420, types: [1, Math.random() < 0.5 ? 1 : 0, 1, 1] });
+    if (!first) burst({ full: true, power: 1, dur: 420, types: [1, Math.random() < 0.4 ? 1 : 0, 1, 1, Math.random() < 0.5 ? 1 : 0, 1, 0, 0] });
     const narrow = W < 640;
     // panel (műoldal szövegfelülete)
     if (scene.panel) { panel = scene.panel; panelTarget = 1; } else panelTarget = 0;
@@ -892,6 +951,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     gl.uniform3fv(S.uDeepTint, deepTint);
     gl.uniform2f(S.uCam, cam[0], cam[1]);
     gl.uniform2f(S.uFocus, focus[0], focus[1]);
+    gl.uniform1f(S.uRough, 1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -913,6 +973,8 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     gl.uniform1f(P.uDofK, W < 640 ? 14 : 22);
     gl.uniform4fv(P.uGRect, G.rect);
     gl.uniform4fv(P.uGType, G.type);
+    gl.uniform4fv(P.uGType2, G.type2);
+    gl.uniform1f(P.uGrain, 1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
@@ -927,6 +989,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
         mono = monoTarget;
         if (params.get("glitch")) {
           const t = params.get("glitch").split("").map(Number);
+          G.next = Infinity;
           burst({ full: params.has("full"), power: 1, dur: 1e6, types: t });
           G.seed = 42;
         }

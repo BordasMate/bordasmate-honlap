@@ -3,15 +3,18 @@
 Statikus honlap, build lépés nélkül. A felület egy valós időben számolt
 WebGL2-kép, két lépésben:
 
-1. **Jelenet:** folyékony fémtükör, rajta krómos, bordázott peremű sejtek.
+1. **Jelenet:** folyékony fémtükör, rajta homokfúvott, pöttyös, enyhén
+   rozsdás, bordázott peremű fémsejtek.
    A tartalmat hordozó sejtek egymáshoz préselődnek (közös, ívelt
    határvonallal), és a vízfelszínen sodródva lökdösik egymást. Mögöttük és
    előttük különböző mélységben fazettás kristályok úsznak, a víz alatt
    elmosódott kristályszilánkok; egérmozgásra a rétegek parallaxisban
    elmozdulnak.
-2. **Utófeldolgozás:** élsimítás, mélységélesség, ragyogás, időnkénti
-   glitch-villanások (szeletcsúszás, függőleges elkenődés, háromszög-mozaik,
-   blokkeltolódás), oldalváltáskor erősebb glitch. Az almenük fekete-fehérek,
+2. **Utófeldolgozás:** élsimítás, mélységélesség, ragyogás, állandó
+   film- és pixelszemcse, időnkénti glitch-villanások (szeletcsúszás,
+   függőleges elkenődés, háromszög-mozaik, blokkeltolódás, pixelmozaik,
+   képszakadás, invertált sávok, váltott soros kiesés) – ezek egy része a
+   teljes oldalt érinti; oldalváltáskor mindig teljes képes glitch fut. Az almenük fekete-fehérek,
    a nyitóoldal színes.
 
 WebGL2 nélküli böngészőben egyszerű, sötét linklista jelenik meg.
@@ -67,4 +70,6 @@ netlify.toml        Netlify beállítás
 Fémtónusok (`palette` mező, a nyitóoldalon látszanak): `titan`, `rez`,
 `kobalt`, `zoldarany`. A színek a `js/organism.js` elején hangolhatók
 (`TINT_DATA`, `GLOW_DATA`, `ENV_HOME`, `DEEP_HOME`); a glitch gyakorisága a
-`G.next` sorban (jelenleg 1,6–6,2 másodpercenként).
+`G.next` sorban (jelenleg 1,6–6,2 másodpercenként), a teljes képes glitch
+aránya a `burst` függvény elején (28%). A szemcse és a rozsda erőssége a
+`uGrain` és `uRough` értékkel állítható (0 = nincs, 1 = alap).
