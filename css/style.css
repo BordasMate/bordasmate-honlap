@@ -177,3 +177,66 @@ html.mono .cell-label.glitch { animation-name: label-glitch-mono; }
 .fallback a { color: var(--text); font-family: var(--display); font-size: 1.2rem; }
 
 .sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- publikációs listák a műoldalon ---------- */
+
+.entries-title {
+  margin: 1.8em 0 .2em;
+  font-family: var(--display);
+  font-size: .78em;
+  font-weight: 650;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.entries-count {
+  margin: .4em 0 1.2em;
+  font-family: var(--display);
+  font-size: .72em;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.year { margin: 0 0 1.4em; }
+.year h4 {
+  margin: 0 0 .5em;
+  padding-bottom: .25em;
+  font-family: var(--display);
+  font-size: 1.05em;
+  font-weight: 750;
+  letter-spacing: .04em;
+  border-bottom: 1px solid rgba(236, 235, 230, .18);
+}
+.entries { list-style: none; margin: 0; padding: 0; }
+.entries li {
+  display: grid;
+  gap: .1em;
+  padding: .55em 0 .6em;
+  border-bottom: 1px dashed rgba(236, 235, 230, .1);
+}
+.entries li:last-child { border-bottom: 0; }
+.e-title { font-size: .98em; line-height: 1.4; }
+.e-source { font-size: .85em; font-style: italic; color: var(--text-dim); line-height: 1.45; }
+.e-note {
+  justify-self: start;
+  margin-top: .2em;
+  padding: .05em .55em .1em;
+  border: 1px solid rgba(236, 235, 230, .25);
+  border-radius: 999px;
+  font-family: var(--display);
+  font-size: .66em;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.e-link {
+  justify-self: start;
+  margin-top: .15em;
+  font-family: var(--display);
+  font-size: .72em;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--mono-tint, #d6d8dc);
+  text-decoration: none;
+}
+.e-link:hover { text-decoration: underline; text-underline-offset: 3px; }

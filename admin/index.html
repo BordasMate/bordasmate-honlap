@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Szerkesztő — Bordás Máté</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/fonts.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>Szerkesztő</span>
+      <span id="dirty" class="dirty" hidden>mentetlen változások</span>
+    </div>
+    <div class="bar-actions">
+      <button id="btn-glitch" class="ghost" title="Egy teljes képes glitch az előnézetben">Glitch próba</button>
+      <button id="btn-download" class="ghost" title="A tartalom letöltése content.json fájlként">Letöltés</button>
+      <label class="ghost file-btn" title="Korábban letöltött content.json betöltése">Betöltés<input id="file-import" type="file" accept="application/json,.json" hidden></label>
+      <button id="btn-revert" class="ghost" title="A közzétett változat visszatöltése">Elvetés</button>
+      <button id="btn-gh" class="ghost" title="GitHub-kapcsolat beállítása">GitHub</button>
+      <button id="btn-save" class="primary">Közzététel</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="side">
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="content" class="tab active">Tartalom</button>
+        <button role="tab" data-tab="look" class="tab">Megjelenés</button>
+        <button role="tab" data-tab="site" class="tab">Oldal</button>
+      </nav>
+      <div id="tree" class="tree"></div>
+    </aside>
+
+    <section class="editor" id="editor" aria-live="polite"></section>
+
+    <section class="preview">
+      <div class="preview-bar">
+        <span class="preview-label">Élő előnézet</span>
+        <code id="preview-path">/</code>
+        <a id="preview-open" href="/" target="_blank" rel="noopener" class="preview-link">közzétett oldal ↗</a>
+      </div>
+      <iframe id="preview" src="/?preview" title="A honlap élő előnézete"></iframe>
+    </section>
+  </main>
+
+  <dialog id="gh-dialog">
+    <form method="dialog" class="dialog">
+      <h2>GitHub-kapcsolat</h2>
+      <p class="hint">A Közzététel gomb a <code>content.json</code> fájlt írja a GitHub-tárolóba; a Netlify ezt észleli, és kb. egy percen belül frissíti a honlapot.</p>
+      <label>Tároló <input name="repo" placeholder="felhasználónév/tárolónév" autocomplete="off"></label>
+      <label>Ág <input name="branch" placeholder="main" autocomplete="off"></label>
+      <label>Hozzáférési token
+        <input name="token" type="password" placeholder="github_pat_…" autocomplete="off">
+      </label>
+      <label class="check"><input name="remember" type="checkbox"> Megjegyzés ezen a gépen</label>
+      <details class="hint">
+        <summary>Hogyan kapok tokent?</summary>
+        <ol>
+          <li>GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token.</li>
+          <li>Repository access: <b>Only select repositories</b>, és válaszd ki a honlap tárolóját.</li>
+          <li>Permissions → Repository permissions → <b>Contents: Read and write</b>.</li>
+          <li>Másold ide a kapott tokent. Csak ebben a böngészőben tárolódik, a honlapra nem kerül fel.</li>
+        </ol>
+      </details>
+      <div class="dialog-actions">
+        <button value="cancel" class="ghost">Mégse</button>
+        <button value="ok" class="primary">Mentés</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script type="module" src="/admin/admin.js"></script>
+</body>
+</html>

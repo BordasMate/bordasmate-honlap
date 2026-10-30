@@ -7,19 +7,28 @@
 // A fizika egyszerű vízfelszíni sodródás: a tartalmas sejtek összetapadnak,
 // lökdösik egymást, a kristályok különböző mélységben úsznak.
 
-/* ===== GLITCH BEÁLLÍTÁSOK – ezeket nyugodtan átírhatod ===== */
-const GLITCH = {
-  enabled: true,         // false = nincs véletlen glitch (oldalváltáskor sem)
-  firstAfter: 5000,      // az első glitch a betöltés után ennyi ms-mal
-  minGap: 9000,          // két glitch között legalább ennyi ms telik el…
-  maxGap: 11000,         // …és legfeljebb ennyi (átlagosan kb. 10 mp)
-  fullChance: 0.28,      // a véletlen glitch-ek ekkora része érinti a teljes oldalt (0–1)
-  minLength: 110,        // egy helyi glitch hossza ms-ban: minLength…
-  maxLength: 440,        // …és maxLength között
-  onNavigate: true,      // oldalváltáskor teljes képes glitch
-  navigateLength: 420,   // annak hossza ms-ban
+/* ===== ALAPBEÁLLÍTÁSOK – a content.json "settings" része felülírja őket ===== */
+export const GLITCH = {
+  enabled: true,              // false = nincs glitch
+  firstAfter: 4000,           // az első glitch-sorozat a betöltés után (ms)
+  minGap: 9000,               // két glitch-sorozat között legalább…
+  maxGap: 11000,              // …és legfeljebb ennyi ms (átlagosan kb. 10 mp)
+  burstCount: 3,              // egy sorozatban ennyi villanás jön egymás után
+  fullChance: 0.5,            // a villanások ekkora része a teljes oldalt érinti (0–1)
+  minLength: 140,             // egy villanás hossza (ms)…
+  maxLength: 420,
+  intensity: 1,               // erősség (0,3–1,5)
+  onNavigate: true,           // oldalváltáskor teljes képes glitch
+  navigateLength: 420,
+  respectReducedMotion: true, // ha a rendszerben „csökkentett mozgás” van beállítva, nincs glitch
 };
-/* ========================================================== */
+export const LOOK = {
+  grain: 1,                   // szemcse
+  rust: 1,                    // rozsda, homokfújás
+  materials: { metal: 0.55, wood: 0.35, stone: 0.4, clay: 0.3 },
+  displayFont: "Syne",
+};
+/* ========================================================================== */
 
 const MAX_B = 24;
 const MAX_G = 14;
@@ -59,6 +68,7 @@ uniform vec3 uGlow[5];
 uniform vec3 uEnvTint, uDeepTint, uGemA, uGemB;
 uniform vec2 uCam, uFocus;
 uniform float uRough;
+uniform vec4 uMat;   // fém, fa, mészkő, agyag
 uniform float uSet[${MAX_B}];   // halmaztagság bitmaszkként
 uniform vec3 uSetCol[3];
 uniform int uNS;
@@ -281,6 +291,56 @@ vec3 roughen(vec3 col, vec2 lc, float h, float sock, float sd){
   return col;
 }
 
+// fém, acél, réz, fa, mészkő és agyag keveréke; a foltok a sejthez rögzülnek
+vec3 lit(vec3 n){
+  float d = max(dot(n, normalize(vec3(-0.45, -0.6, 0.66))), 0.0);
+  return vec3(0.1) * uEnvTint + vec3(1.08, 1.02, 0.95) * d + vec3(0.06) * max(dot(n, normalize(vec3(0.6, 0.3, 0.75))), 0.0);
+}
+vec3 material(vec3 n, vec4 tint, float phase, vec2 lc, float h, float sock, float sd){
+  // nagy, lassan váltakozó anyagfoltok; a sejt saját magjától is függ
+  vec2 mq = lc * 0.0065 + vec2(sd * 0.37, sd * 0.11);
+  vec4 w = uMat * (vec4(noise(mq + 1.3), noise(mq + 5.7), noise(mq + 11.1), noise(mq + 23.9)) * 0.75
+                 + 0.5 * vec4(hash(vec2(sd, 1.0)), hash(vec2(sd, 2.0)), hash(vec2(sd, 3.0)), hash(vec2(sd, 4.0))));
+  w = w * w * w * w; w /= max(dot(w, vec4(1.0)), 1e-4);
+  vec3 r = reflect(vec3(0.0, 0.0, -1.0), n);
+  float spec = pow(max(dot(r, normalize(vec3(-0.35, -0.55, 0.76))), 0.0), 16.0);
+  vec3 L = lit(n);
+  vec3 col = vec3(0.0);
+  if (w.x > 0.01) {
+    // fém: a palettaszín; néhol hidegebb acél, néhol réz
+    float alloy = noise(lc * 0.02 + sd * 4.0);
+    vec4 t = tint;
+    t.rgb = mix(t.rgb, vec3(0.74, 0.77, 0.82), smoothstep(0.6, 0.85, alloy) * 0.6);
+    t.rgb = mix(t.rgb, vec3(0.95, 0.52, 0.3), smoothstep(0.35, 0.12, alloy) * 0.5);
+    col += w.x * roughen(metal(n, t, phase), lc, h, sock, sd);
+  }
+  if (w.y > 0.01) {
+    // fa: évgyűrűk és rostok
+    float a = sd * 3.1; vec2 dir = vec2(cos(a), sin(a));
+    float u = dot(lc, dir), v = dot(lc, vec2(-dir.y, dir.x));
+    float ring = sin(u * 0.16 + 5.0 * noise(vec2(u * 0.012, v * 0.05) + sd));
+    float fib = noise(vec2(u * 0.9, v * 0.035) + sd * 3.0);
+    vec3 wc = mix(vec3(0.24, 0.13, 0.06), vec3(0.56, 0.36, 0.19), 0.5 + 0.5 * ring) * (0.75 + 0.45 * fib);
+    col += w.y * (wc * L + vec3(0.22) * spec);
+  }
+  if (w.z > 0.01) {
+    // mészkő: halvány, porózus
+    float st = noise(lc * 0.07 + sd) * 0.6 + noise(lc * 0.28 + sd) * 0.4;
+    float pore = step(hash(floor(lc * 0.55 + sd * 7.0)), 0.07);
+    float shell = smoothstep(0.92, 1.0, sin(length(lc - vec2(sd * 3.0, 0.0)) * 0.35 + noise(lc * 0.05) * 4.0));
+    vec3 sc = vec3(0.76, 0.73, 0.66) * (0.78 + 0.32 * st) * (1.0 - 0.45 * pore) * (1.0 - 0.15 * shell);
+    col += w.z * (sc * L * 0.92 + vec3(0.05) * spec);
+  }
+  if (w.w > 0.01) {
+    // agyag: matt terrakotta, ujjnyomnyi hullámokkal
+    float cl = noise(lc * 0.05 + sd * 2.0) * 0.5 + noise(lc * 0.45 + sd) * 0.25;
+    float strokes = 0.5 + 0.5 * sin(dot(lc, vec2(0.3, 0.1)) + noise(lc * 0.03) * 6.0);
+    vec3 cc = vec3(0.6, 0.31, 0.18) * (0.78 + 0.35 * cl) * (0.92 + 0.08 * strokes);
+    col += w.w * (cc * L + vec3(0.07) * spec);
+  }
+  return col;
+}
+
 const vec2 D0 = vec2(1.0, 0.0), D1 = vec2(-0.5, 0.8660254), D2 = vec2(-0.5, -0.8660254);
 
 void main(){
@@ -310,9 +370,8 @@ void main(){
     vec2 lc = p - (F.y < 98.0 ? uB[int(F.y)].xy : uPanel.xy);
     float sd = A.w * 50.0;
     vec3 n = normalize(vec3(-g * 18.0 + bumpAt(lc, sd), 1.0));
-    col = metal(n, uTint[ti], h * 0.6 + uTime * 0.025 + A.w);
-    col = roughen(col, lc, h, sockC, sd);
-    col = mix(col, col * 0.1 + vec3(0.006), sockC * (F.y > 98.0 ? 0.97 : 0.88));  // a szövegpanel belseje sötétebb, nyugodtabb
+    col = material(n, uTint[ti], h * 0.6 + uTime * 0.025 + A.w, lc, h, sockC, sd);
+    col = mix(col, col * 0.16 + vec3(0.006), sockC * (F.y > 98.0 ? 0.97 : 0.85));  // a szövegpanel belseje sötétebb, nyugodtabb
     col *= 0.35 + 0.65 * smoothstep(0.0, 6.0, bd);
     float f1 = length((p - uB[int(F.y < 98.0 ? F.y : 0.0)].xy) / max(uB[int(F.y < 98.0 ? F.y : 0.0)].zw, vec2(1.0)));
     if (F.y < 98.0) {
@@ -339,8 +398,7 @@ void main(){
       for (int k = 0; k < 3; k++) if ((mk & (1 << k)) != 0) { tc += uSetCol[k]; cnt += 1.0; }
       tc /= max(cnt, 1.0);
       vec3 nm = normalize(vec3(-g * 24.0 + bumpAt(p, 3.0) * 0.8, 1.0));
-      vec3 mc = metal(nm, vec4(tc, 0.5), h * 0.5 + uTime * 0.02 + cnt * 0.3);
-      mc = roughen(mc, p, h, 0.0, 3.0);
+      vec3 mc = material(nm, vec4(tc, 0.5), h * 0.5 + uTime * 0.02 + cnt * 0.3, p, h, 0.0, 3.0 + float(mk));
       mc = mix(mc, col * 1.3, 0.16);
       if (cnt > 1.5) mc += tc * 0.07 * (0.6 + 0.4 * sin(uTime * 1.1 + p.x * 0.012));
       col = mc * (0.45 + 0.55 * smoothstep(0.0, 14.0, -bd));
@@ -558,31 +616,62 @@ void main(){
 
 // 0: titán (nyitóoldal), 1: réz (Irodalom), 2: kobalt (Zene), 3: zöldarany, 4: víz
 export const TINTS = { titan: 0, rez: 1, kobalt: 2, zoldarany: 3 };
-const TINT_DATA = [
+export const TINT_DATA = [
   [0.8, 0.8, 0.86, 0.55],
   [0.98, 0.55, 0.32, 0.38],
   [0.4, 0.55, 1.0, 0.62],
   [0.72, 0.8, 0.42, 0.45],
   [0.2, 0.21, 0.25, 0.3],
 ];
-const GLOW_DATA = [
+export const GLOW_DATA = [
   [0.75, 0.55, 1.0],
   [1.0, 0.35, 0.55],
   [0.2, 0.75, 1.0],
   [0.75, 1.0, 0.3],
   [0, 0, 0],
 ];
-const ENV_HOME = [0.98, 0.72, 1.12], DEEP_HOME = [0.72, 0.36, 0.9];
+export const ENV_HOME = [0.98, 0.72, 1.12], DEEP_HOME = [0.72, 0.36, 0.9];
 const ENV_MONO = [1, 1, 1], DEEP_MONO = [0.62, 0.64, 0.7];
-const GEM_A = [1.0, 0.2, 0.78], GEM_B = [0.15, 0.85, 1.0];
+export const GEM_A = [1.0, 0.2, 0.78], GEM_B = [0.15, 0.85, 1.0];
 // a kristályok mélysége a sorszámuk szerint (<0 a víz alatt, >0 a kamera előtt)
 const DEPTHS = [-0.8, 0, -0.5, 0.9, 0.05, -1.0, 0.65, -0.3, 0];
+
+// a content.json "settings" részének alkalmazása (az admin felületről is)
+const hexRgb = (h) => { const n = parseInt(String(h).replace("#", ""), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; };
+const num = (v, d) => (v === undefined || v === null || v === "" || isNaN(+v) ? d : +v);
+export function applySettings(st = {}) {
+  const g = st.glitch || {};
+  for (const k of Object.keys(GLITCH)) {
+    if (g[k] === undefined) continue;
+    GLITCH[k] = typeof GLITCH[k] === "boolean" ? !!g[k] : num(g[k], GLITCH[k]);
+  }
+  const t = st.texture || {};
+  LOOK.grain = num(t.grain, LOOK.grain);
+  LOOK.rust = num(t.rust, LOOK.rust);
+  for (const k of ["metal", "wood", "stone", "clay"]) LOOK.materials[k] = num(t[k], LOOK.materials[k]);
+  // legalább egy anyag maradjon
+  if (Object.values(LOOK.materials).every((v) => v <= 0.001)) LOOK.materials.metal = 1;
+  if (st.fonts && st.fonts.display) LOOK.displayFont = st.fonts.display;
+  const pal = st.palettes || {};
+  for (const [name, i] of Object.entries(TINTS)) {
+    const p = pal[name];
+    if (!p) continue;
+    if (p.metal) TINT_DATA[i].splice(0, 3, ...hexRgb(p.metal));
+    if (p.iridescence !== undefined) TINT_DATA[i][3] = num(p.iridescence, TINT_DATA[i][3]);
+    if (p.glow) GLOW_DATA[i].splice(0, 3, ...hexRgb(p.glow));
+  }
+  const h = st.home || {};
+  if (h.light) ENV_HOME.splice(0, 3, ...hexRgb(h.light).map((v) => v * 1.1));
+  if (h.depth) DEEP_HOME.splice(0, 3, ...hexRgb(h.depth));
+  if (h.crystalA) GEM_A.splice(0, 3, ...hexRgb(h.crystalA));
+  if (h.crystalB) GEM_B.splice(0, 3, ...hexRgb(h.crystalB));
+}
 
 /* ---------------- segédek ---------------- */
 
 const measure = document.createElement("canvas").getContext("2d");
 function textW(s, size, weight) {
-  measure.font = `${weight} ${size}px Syne, system-ui, sans-serif`;
+  measure.font = `${weight} ${size}px "${LOOK.displayFont}", system-ui, sans-serif`;
   return measure.measureText(s).width;
 }
 function splitLines(label, size, weight, maxW) {
@@ -632,7 +721,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     for (const n of names) U[n] = gl.getUniformLocation(p, n);
     return { p, U };
   };
-  const scene = program(SCENE, ["uRes", "uScale", "uTime", "uN", "uB", "uC", "uNG", "uG", "uGA", "uPanel", "uPanelOn", "uPanelTint", "uRimK", "uRip", "uTint", "uGlow", "uEnvTint", "uDeepTint", "uGemA", "uGemB", "uCam", "uFocus", "uRough", "uSet", "uSetCol", "uNS", "uPad"]);
+  const scene = program(SCENE, ["uRes", "uScale", "uTime", "uN", "uB", "uC", "uNG", "uG", "uGA", "uPanel", "uPanelOn", "uPanelTint", "uRimK", "uRip", "uTint", "uGlow", "uEnvTint", "uDeepTint", "uGemA", "uGemB", "uCam", "uFocus", "uRough", "uMat", "uSet", "uSetCol", "uNS", "uPad"]);
   const post = program(POST, ["uTex", "uRes", "uScale", "uTime", "uMono", "uGlitch", "uGSeed", "uDofK", "uGRect", "uGType", "uGType2", "uGrain", "uMonoTint"]);
 
   const buf = gl.createBuffer();
@@ -701,14 +790,14 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
 
   /* ----- glitch ----- */
 
-  const G = { end: 0, next: performance.now() + GLITCH.firstAfter, rect: [0, 0, 0, 0], type: [0, 0, 0, 0], type2: [0, 0, 0, 0], seed: 0, seedT: 0, power: 0, amt: 0 };
+  const G = { queue: [], end: 0, next: performance.now() + GLITCH.firstAfter, rect: [0, 0, 0, 0], type: [0, 0, 0, 0], type2: [0, 0, 0, 0], seed: 0, seedT: 0, power: 0, amt: 0 };
   function burst({ full = null, power = 1, dur = null, types = null } = {}) {
-    if (reduced || !GLITCH.enabled) return;
+    if ((reduced && GLITCH.respectReducedMotion) || !GLITCH.enabled) return;
     const now = performance.now();
     // néha a teljes oldalt érinti
     if (full === null) full = Math.random() < GLITCH.fullChance;
     G.end = now + (dur ?? GLITCH.minLength + Math.random() * (GLITCH.maxLength - GLITCH.minLength));
-    G.power = power;
+    G.power = power * GLITCH.intensity;
     if (full) G.rect = [0, 0, W, H];
     else {
       const list = [...bodies.values()].filter((b) => b.ax > 12 && (b.kind !== "drift" || Math.abs(b.z) < 0.3));
@@ -728,7 +817,6 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       const pool = full ? [0, 0, 2, 4, 5, 5, 6, 7, 3] : [0, 1, 2, 3, 4, 6, 7];
       const n = Math.random() < 0.45 ? 2 : 1;
       for (let i = 0; i < n; i++) t[pool[Math.floor(Math.random() * pool.length)]] = 1;
-      if (full) G.end = now + 80 + Math.random() * 260;
     }
     G.type = t.slice(0, 4); G.type2 = t.slice(4);
     const [rx, ry, rw, rh] = G.rect;
@@ -1131,7 +1219,13 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     gl.uniform3fv(S.uDeepTint, deepTint);
     gl.uniform2f(S.uCam, cam[0], cam[1]);
     gl.uniform2f(S.uFocus, focus[0], focus[1]);
-    gl.uniform1f(S.uRough, 1);
+    gl.uniform1f(S.uRough, LOOK.rust);
+    const M = LOOK.materials;
+    gl.uniform4f(S.uMat, M.metal, M.wood, M.stone, M.clay);
+    gl.uniform4fv(S.uTint, TINT_DATA.flat());
+    gl.uniform3fv(S.uGlow, GLOW_DATA.flat());
+    gl.uniform3fv(S.uGemA, GEM_A);
+    gl.uniform3fv(S.uGemB, GEM_B);
     gl.uniform1fv(S.uSet, sArr);
     gl.uniform3fv(S.uSetCol, setCols);
     gl.uniform1i(S.uNS, nSets);
@@ -1158,7 +1252,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     gl.uniform4fv(P.uGRect, G.rect);
     gl.uniform4fv(P.uGType, G.type);
     gl.uniform4fv(P.uGType2, G.type2);
-    gl.uniform1f(P.uGrain, 1);
+    gl.uniform1f(P.uGrain, LOOK.grain);
     gl.uniform3fv(P.uMonoTint, monoTint);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
@@ -1191,7 +1285,15 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       if (ema > 1 / 38 && quality > 0.6) { quality *= 0.88; resize(); }
     }
     time += dt;
-    if (!reduced && now > G.next) { burst(); G.next = now + GLITCH.minGap + Math.random() * (GLITCH.maxGap - GLITCH.minGap); }
+    // kb. 10 másodpercenként egy jól látható glitch-sorozat (több gyors villanás egymás után)
+    if (now > G.next) {
+      G.next = now + GLITCH.minGap + Math.random() * Math.max(0, GLITCH.maxGap - GLITCH.minGap);
+      const n = Math.max(1, Math.round(GLITCH.burstCount));
+      let t = now;
+      G.queue = [];
+      for (let i = 0; i < n; i++) { G.queue.push({ t, full: i === 0 ? Math.random() < Math.max(GLITCH.fullChance, 0.5) : Math.random() < GLITCH.fullChance }); t += GLITCH.minLength + 60 + Math.random() * 240; }
+    }
+    if (G.queue && G.queue.length && now >= G.queue[0].t) { const q = G.queue.shift(); burst({ full: q.full }); }
     const steps = Math.max(1, Math.round(dt * 60));
     for (let s = 0; s < steps; s++) step(1 / 60);
     draw(now);
@@ -1237,5 +1339,6 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
   });
 
   if (params.has("debug")) window.__bodies = bodies;
+  if (params.has("debug")) window.__G = G;
   return { setScene, resize, ripple, burst, size: () => ({ W, H }) };
 }

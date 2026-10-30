@@ -1,5 +1,37 @@
-import { site } from "./content.js";
-import { createOrganism, TINTS } from "./organism.js";
+import { createOrganism, TINTS, applySettings } from "./organism.js";
+
+/* ---------- tartalom (content.json; az admin előnézetében a piszkozat) ---------- */
+
+let site = { name: "", categories: [], shared: [], contact: {} };
+let settings = {};
+const PREVIEW = new URLSearchParams(location.search).has("preview");
+
+async function loadContent() {
+  if (PREVIEW) {
+    try { const d = localStorage.getItem("bm-draft"); if (d) return JSON.parse(d); } catch {}
+  }
+  const r = await fetch("/content.json", { cache: "no-cache" });
+  return r.json();
+}
+
+const hexRgb = (h) => { const n = parseInt(String(h || "#ffffff").replace("#", ""), 16); return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; };
+const FONT_STACK = { display: "system-ui, sans-serif", body: "Georgia, serif" };
+
+function applyContent(data) {
+  site = { ...(data.site || {}), categories: data.categories || [], shared: data.shared || [] };
+  settings = data.settings || {};
+  shared = site.shared;
+  applySettings(settings);
+  const f = settings.fonts || {};
+  const root = document.documentElement.style;
+  root.setProperty("--display", `"${f.display || "Syne"}", ${FONT_STACK.display}`);
+  root.setProperty("--body", `"${f.body || "Literata"}", ${FONT_STACK.body}`);
+  renderFooter();
+  return Promise.race([
+    Promise.all([document.fonts.load(`700 30px "${f.display || "Syne"}"`), document.fonts.load(`400 18px "${f.body || "Literata"}"`)]),
+    new Promise((r) => setTimeout(r, 1500)),
+  ]).catch(() => {});
+}
 
 /* ---------- útvonalak ---------- */
 
@@ -11,7 +43,7 @@ const currentPath = () => {
 };
 
 // egy kategória alkategóriái: a sajátjai és a vele közös (metszetbeli) alkategóriák
-const shared = site.shared || [];
+let shared = [];
 const childrenOf = (cat) => [...cat.children, ...shared.filter((s) => s.in.includes(cat.slug))];
 const isShared = (sub) => Array.isArray(sub.in) && sub.in.length > 1;
 const catBySlug = (slug) => site.categories.find((c) => c.slug === slug);
@@ -55,10 +87,9 @@ function drifters(tint, W, multi = false) {
   return Array.from({ length: n }, (_, i) => ({ key: "drift" + i, kind: "drift", tint: multi ? [0, 1, 2][i % 3] : tint, r: (W < 640 ? 15 : 20) + ((i * 37) % 21) }));
 }
 
-// az almenük egyszínű árnyalata
-const MONO = { titan: [0.82, 0.86, 0.95], rez: [1.0, 0.5, 0.24], kobalt: [0.3, 0.56, 1.0], zoldarany: [0.7, 0.95, 0.3] };
-const MONO_SHARED = [0.92, 0.36, 0.88];
-const monoOf = (cat, sub) => (sub && isShared(sub) ? MONO_SHARED : MONO[cat.palette] || MONO.titan);
+// az almenük egyszínű árnyalata (a beállításokból)
+const paletteOf = (name) => (settings.palettes || {})[name] || {};
+const monoOf = (cat, sub) => hexRgb(sub && isShared(sub) ? settings.sharedMono || "#eb5ce0" : paletteOf(cat.palette).mono || paletteOf("titan").mono || "#d1dbf2");
 
 // állandó kulcsok: ugyanaz a sejt oldalváltáskor átúszik az új helyére
 const subKey = (cat, sub) => (isShared(sub) ? "~" + sub.slug : `/${cat.slug}/${sub.slug}`);
@@ -169,7 +200,7 @@ function sceneFor(r, W, H) {
     };
   }
   return {
-    title: `Nincs ilyen oldal — ${site.name}`, h1: "Nincs ilyen oldal", monoTint: MONO.titan,
+    title: `Nincs ilyen oldal — ${site.name}`, h1: "Nincs ilyen oldal", monoTint: hexRgb(paletteOf("titan").mono || "#d1dbf2"),
     items: [
       { key: "/404", label: "Ez a sejt még nem nőtt ki", kind: "center", tint: 0, size: z.center * 0.8, minR: z.minChild },
       homeItem(z),
@@ -188,6 +219,21 @@ function workBody(cat, sub, w) {
   if (w.audio) h += `<audio class="audio" controls preload="none" src="${esc(w.audio)}"></audio>`;
   if (w.embed) h += `<div class="embed"><iframe src="${esc(w.embed)}" title="${esc(w.title)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div>`;
   if (w.links?.length) h += `<ul class="links">${w.links.map((l) => `<li><a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join("")}</ul>`;
+  if (w.entries?.length) {
+    // tételek évenként, a legfrissebb elöl
+    const years = new Map();
+    w.entries.forEach((e) => { const y = String(e.year || "").trim() || "—"; if (!years.has(y)) years.set(y, []); years.get(y).push(e); });
+    const order = [...years.keys()].sort((a, b) => (parseInt(b) || 0) - (parseInt(a) || 0));
+    if (w.entriesTitle) h += `<h3 class="entries-title">${esc(w.entriesTitle)}</h3>`;
+    h += `<p class="entries-count">${w.entries.length} tétel</p>`;
+    h += order.map((y) => `<section class="year"><h4>${esc(y)}</h4><ul class="entries">${years.get(y).map((e) => `
+      <li>
+        <span class="e-title">${esc(e.title || "")}</span>
+        ${e.source ? `<span class="e-source">${esc(e.source)}</span>` : ""}
+        ${e.note ? `<span class="e-note">${esc(e.note)}</span>` : ""}
+        ${e.link ? `<a class="e-link" href="${esc(e.link)}" target="_blank" rel="noopener">megnyitás ↗</a>` : ""}
+      </li>`).join("")}</ul></section>`).join("");
+  }
   return h;
 }
 
@@ -219,6 +265,7 @@ function a11yLinks(r) {
 let currentWorkKey = null;
 
 function render() {
+  if (PREVIEW && window.parent !== window) window.parent.postMessage({ type: "bm-path", path: currentPath() }, location.origin);
   const r = resolve(currentPath());
   const W = window.innerWidth, H = window.innerHeight;
   const sc = sceneFor(r, W, H);
@@ -282,14 +329,33 @@ window.addEventListener("resize", () => {
 
 /* ---------- lábléc ---------- */
 
-const c = site.contact || {};
-document.getElementById("foot").innerHTML = [
-  c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : "",
-  ...(c.links || []).map((l) => `<a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a>`),
-  `© ${new Date().getFullYear()} ${esc(site.name)}`,
-].filter(Boolean).join('<span aria-hidden="true"> · </span>');
+function renderFooter() {
+  const c = site.contact || {};
+  document.getElementById("foot").innerHTML = [
+    c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : "",
+    ...(c.links || []).map((l) => `<a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a>`),
+    `© ${new Date().getFullYear()} ${esc(site.name)}`,
+  ].filter(Boolean).join('<span aria-hidden="true"> · </span>');
+}
 
-Promise.race([
-  Promise.all([document.fonts.load("700 30px Syne"), document.fonts.load("400 18px Literata")]),
-  new Promise((r) => setTimeout(r, 1500)),
-]).finally(render);
+/* ---------- élő előnézet az admin felületen ---------- */
+
+if (PREVIEW) {
+  document.documentElement.classList.add("preview");
+  window.addEventListener("message", async (e) => {
+    if (e.origin !== location.origin || !e.data) return;
+    const m = e.data;
+    if (m.type === "bm-content") { currentWorkKey = null; await applyContent(m.content); render(); }
+    if (m.type === "bm-go" && m.path) go(link(m.path));
+    if (m.type === "bm-glitch" && org) org.burst({ full: true, power: 1, dur: 600 });
+  });
+}
+
+loadContent()
+  .then(applyContent)
+  .then(render)
+  .then(() => { if (PREVIEW && window.parent !== window) window.parent.postMessage({ type: "bm-ready" }, location.origin); })
+  .catch((err) => {
+    console.error(err);
+    document.getElementById("cells").innerHTML = '<div class="fallback"><p class="fb-name">A tartalom nem tölthető be.</p></div>';
+  });

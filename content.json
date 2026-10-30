@@ -1,0 +1,1105 @@
+{
+ "site": {
+  "name": "Bordás Máté",
+  "description": "Bordás Máté költő, műfordító, irodalomtudós és zenész alkotói honlapja.",
+  "palette": "titan",
+  "contact": {
+   "email": "",
+   "links": []
+  }
+ },
+ "settings": {
+  "palettes": {
+   "titan": {
+    "label": "Titán (nyitóoldal)",
+    "metal": "#ccccdb",
+    "glow": "#bf8cff",
+    "mono": "#d1dbf2",
+    "iridescence": 0.55
+   },
+   "rez": {
+    "label": "Réz (Irodalom)",
+    "metal": "#fa8c52",
+    "glow": "#ff598c",
+    "mono": "#ff803d",
+    "iridescence": 0.38
+   },
+   "kobalt": {
+    "label": "Kobalt (Zene)",
+    "metal": "#668cff",
+    "glow": "#33bfff",
+    "mono": "#4d8fff",
+    "iridescence": 0.62
+   },
+   "zoldarany": {
+    "label": "Zöldarany",
+    "metal": "#b8cc6b",
+    "glow": "#bfff4d",
+    "mono": "#b3f24d",
+    "iridescence": 0.45
+   }
+  },
+  "sharedMono": "#eb5ce0",
+  "home": {
+   "light": "#fab8ff",
+   "depth": "#b85ce6",
+   "crystalA": "#ff33c7",
+   "crystalB": "#26d9ff"
+  },
+  "glitch": {
+   "enabled": true,
+   "minGap": 9000,
+   "maxGap": 11000,
+   "burstCount": 3,
+   "fullChance": 0.5,
+   "minLength": 140,
+   "maxLength": 420,
+   "intensity": 1,
+   "onNavigate": true,
+   "navigateLength": 420,
+   "respectReducedMotion": true
+  },
+  "texture": {
+   "grain": 1,
+   "rust": 0.8,
+   "metal": 0.55,
+   "wood": 0.35,
+   "stone": 0.4,
+   "clay": 0.3
+  },
+  "fonts": {
+   "display": "Syne",
+   "body": "Literata"
+  }
+ },
+ "categories": [
+  {
+   "title": "Irodalom",
+   "slug": "irodalom",
+   "palette": "rez",
+   "children": [
+    {
+     "title": "Vers",
+     "slug": "vers",
+     "works": [
+      {
+       "title": "Egy völgy elárasztása",
+       "slug": "egy-volgy-elarasztasa",
+       "meta": "versek · Napkút Kiadó, Budapest, 2020",
+       "about": [
+        "Első verseskötet.",
+        "ISBN 978-963-263-895-9"
+       ],
+       "entriesTitle": "A kötetről írták",
+       "entries": [
+        {
+         "title": "Mărcuțiu-Rácz Dóra: majdnem-vegleges.pdf",
+         "source": "Kolozsvári Helikon, 2020/17 – Egy völgy elárasztása",
+         "year": "2020",
+         "link": "https://www.helikon.ro/bejegyzesek/majdnem-vegleges-pdf"
+        },
+        {
+         "title": "Krusovszky Dénes (KáDé): Bordás Máté: Egy völgy elárasztása",
+         "source": "magyarnarancs.hu, 2020.07.18.",
+         "year": "2020",
+         "link": "https://magyarnarancs.hu/konyv/bordas-mate-egy-volgy-elarasztasa-130842"
+        },
+        {
+         "title": "Csala Bertalan: Sötétség keveredik a lift fényével",
+         "source": "ESŐ, 2021/3 – Egy völgy elárasztása",
+         "year": "2021",
+         "link": "https://www.esolap.hu/authors/582-csala-bertalan/2506.html"
+        },
+        {
+         "title": "Szabados Attila: Lüktetésből terepmintát",
+         "source": "kortarsonline.hu, 2021.07.16. – Egy völgy elárasztása",
+         "year": "2021",
+         "link": "https://kortarsonline.hu/aktual/bordas-mate.html"
+        }
+       ]
+      },
+      {
+       "title": "Gnóm",
+       "slug": "gnom",
+       "meta": "versek · Fiatal Írók Szövetsége, Budapest, 2022 · Hortus Conclusus sorozat",
+       "about": [
+        "Második verseskötet, 100 oldal.",
+        "ISBN 978-615-5729-78-2"
+       ]
+      },
+      {
+       "title": "A terhelés poétikája",
+       "slug": "a-terheles-poetikaja",
+       "meta": "verseskötet",
+       "about": [
+        "A kötet adatai hamarosan."
+       ]
+      },
+      {
+       "title": "Versek folyóiratokban",
+       "slug": "versek-folyoiratokban",
+       "meta": "első közlések, 2015–2025",
+       "entries": [
+        {
+         "title": "A szájüregben; Kénes; Szédül; Csak kortyolsz; Megoldás; Szirmok",
+         "source": "ESŐ, 2015/4, 71–74.",
+         "year": "2015",
+         "link": "http://esolap.hu/archive/entryView/1684"
+        },
+        {
+         "title": "Tengerzúgás; Gardrób; Gnóm",
+         "source": "SZIFONline, 2016.04.12.",
+         "year": "2016",
+         "link": "http://www.szifonline.hu/index.php?cikk_ID=439"
+        },
+        {
+         "title": "Csendes ördög; Illúziógárda; Párolgó; Emberfelettihez; Saját esőfelhő; Gesztenyebarna",
+         "source": "Irodalmi Jelen, 2016. június",
+         "year": "2016",
+         "link": "http://www.irodalmijelen.hu/2016-mar-23-1304/illuziogarda-bordas-mate-versei-debutben"
+        },
+        {
+         "title": "Felmelegedés ellen; Modell alkat, remete lélek",
+         "source": "Ambroozia, 2016/2",
+         "year": "2016",
+         "link": "http://www.ambroozia.hu/index.php/component/tags/tag/95-bordas-mate"
+        },
+        {
+         "title": "Szobrászsegéd; Csíny",
+         "source": "Hévíz, 2016/3, 226–227.",
+         "year": "2016"
+        },
+        {
+         "title": "Mosókonyha; Oázis keblekből; Vallatás metronómra; Emma padlója",
+         "source": "ESŐ, 2016/2",
+         "year": "2016",
+         "link": "http://esolap.hu/archive/entryView/1729"
+        },
+        {
+         "title": "Földosztó; Textil őrök",
+         "source": "KULTer, 2016.09.02.",
+         "year": "2016",
+         "link": "http://kulter.hu/2016/09/bordas-mate-versei-2/"
+        },
+        {
+         "title": "Független zajok; Tundracseppek; Plexi; Semmi köz",
+         "source": "Helikon, 2017/3",
+         "year": "2017",
+         "link": "https://www.helikon.ro/versek-166/"
+        },
+        {
+         "title": "Szomjas, vörös sörényű; Túlfűtött",
+         "source": "ESŐ, 2017/1",
+         "year": "2017"
+        },
+        {
+         "title": "Gázló a folyót; Békefolt",
+         "source": "Tiszatáj, 2017/7–8",
+         "year": "2017"
+        },
+        {
+         "title": "Occident",
+         "source": "Litera, 2017.07.19.",
+         "year": "2017",
+         "link": "http://www.litera.hu/hirek/bordas-mate-versei"
+        },
+        {
+         "title": "Fantomszúrás zsebkörnyéken",
+         "source": "Hévíz, 2017/4–5, 978.",
+         "year": "2017"
+        },
+        {
+         "title": "Közös fürdőzés; Libabőrben; Stop; Varjak",
+         "source": "Helikon, 2017/18, 10.",
+         "year": "2017",
+         "link": "https://www.helikon.ro/versek-211/"
+        },
+        {
+         "title": "A csípőcsont mellett; Feljönni levegőért; Lövés a rádióból",
+         "source": "Helikon, 2017/21",
+         "year": "2017",
+         "link": "https://www.helikon.ro/versek-225/"
+        },
+        {
+         "title": "A vadászpuska türelme; Kép magasról",
+         "source": "PRAE, 2017/3",
+         "year": "2017"
+        },
+        {
+         "title": "Mancsnyomok I. / első lehallgatás; Telefújt",
+         "source": "Műút, 2018/066",
+         "year": "2018",
+         "link": "https://www.muut.hu/archivum/29074"
+        },
+        {
+         "title": "Körtánc; újrakezdem",
+         "source": "SZIFONline, 2018.08.12.",
+         "year": "2018",
+         "link": "http://www.szifonline.hu/fisz-muhely/1376-Bord_s_M_t_versei"
+        },
+        {
+         "title": "A jóslat; Gát az orrnyergen",
+         "source": "ESŐ, 2018/3",
+         "year": "2018"
+        },
+        {
+         "title": "Midazolam",
+         "source": "FÉLonline – Késelés késsel, 2018.12.03.",
+         "year": "2018",
+         "link": "https://felonline.hu/2018/12/03/bordas-mate-verse-melhardt-gergo-es-vajna-adam-vakreflexioival/"
+        },
+        {
+         "title": "Kilengő",
+         "source": "Hévíz, 2019/3",
+         "year": "2019"
+        },
+        {
+         "title": "Levegőben és a földön; Két liftakna ‒ a harmadikról",
+         "source": "KULTer, 2020.05.19.",
+         "year": "2020",
+         "link": "http://kulter.hu/2020/05/bordas-mate-versei/"
+        },
+        {
+         "title": "Éjnek áldozók",
+         "source": "ujforras.hu, 2020.07.22.",
+         "year": "2020",
+         "link": "https://ujforras.hu/forraspont-6/"
+        },
+        {
+         "title": "Grigorjevics mártír",
+         "source": "Litera – Késelés késsel, 2020.09.16.",
+         "year": "2020",
+         "link": "https://litera.hu/irodalom/elso-kozles/keseles-kessel-bordas-mate-verse-borda-reka-es-csete-soma-vakreflexiojaval.html"
+        },
+        {
+         "title": "A terrorveszély elhárítani nem kell félnetek jó lesz; Tűzközeli",
+         "source": "Irodalmi Szemle, 2020/12",
+         "year": "2020",
+         "link": "https://irodalmiszemle.sk/2020/12/bordas-mate-versei/"
+        },
+        {
+         "title": "Az utolsó öt",
+         "source": "NINCS online, 2021.04.09.",
+         "year": "2021",
+         "link": "https://www.nincs.online/post/az-utols%C3%B3-%C3%B6t"
+        },
+        {
+         "title": "Csúcsragadozó; Hintázni jöttem",
+         "source": "Műút, 2021/78",
+         "year": "2021",
+         "link": "https://muut.hu/archivum/37036"
+        },
+        {
+         "title": "Grigorjevics és a bizalmas",
+         "source": "ESŐ, 2021/3",
+         "year": "2021",
+         "link": "https://epa.oszk.hu/04000/04084/00019/pdf/EPA04084_eso_2021_03_003-060.pdf"
+        },
+        {
+         "title": "Futás után hazafelé; Elhagyott tabletták traumája",
+         "source": "Híd, 2021/7–8",
+         "year": "2021",
+         "link": "https://epa.oszk.hu/01000/01014/00188/pdf/EPA01014_hid_2021_07-08_015-017.pdf"
+        },
+        {
+         "title": "1 játék készül 1; 2 játék készül 2; 3 játék készül 3",
+         "source": "Tempevölgy, 2023/1",
+         "year": "2023",
+         "link": "https://tempevolgy.hu/wp-content/uploads/2025/07/tempevolgy_beliv_2023_1.pdf"
+        },
+        {
+         "title": "Szinusz, három- és négyszög; Halkan; Gyöngy (elhibázott)",
+         "source": "Kalligram, 2023/7–8",
+         "year": "2023",
+         "link": "https://epa.oszk.hu/03900/03985/00125/pdf/EPA03985_kalligram_2023_07-08.pdf"
+        },
+        {
+         "title": "Trakl a Szent István Kórházban; A fürdés árnyéka; 4 játék készül 4; 5 játék készül 5; gyógyulás*; gyógyulás**",
+         "source": "Látó, 2023/10",
+         "year": "2023",
+         "link": "https://epa.oszk.hu/00300/00384/00217/pdf/EPA00384_lato_2023_10_034-040.pdf"
+        },
+        {
+         "title": "Tórusz; Billen; Lakat",
+         "source": "SZIFONline, 2024.03.22.",
+         "year": "2024",
+         "link": "https://www.szifonline.hu/kolteszet/2898-bordas-mate-versei-2024-06-14"
+        },
+        {
+         "title": "13 játék készül 13; 14 játék készül 14",
+         "source": "KULTer, 2024.07.26.",
+         "year": "2024",
+         "link": "https://www.kulter.hu/2024/07/bordas-mate-versei-3/"
+        },
+        {
+         "title": "10 játék készül 10; 11 játék készül 11",
+         "source": "NINCS online, 2024.11.01.",
+         "year": "2024",
+         "link": "https://www.nincs.online/post/j%C3%A1t%C3%A9k-k%C3%A9sz%C3%BCl"
+        },
+        {
+         "title": "▐▀▌",
+         "source": "Parnasszus, 2024/4",
+         "year": "2024"
+        },
+        {
+         "title": "# Előszó #; Képernyő",
+         "source": "Irodalmi Szemle (online), 2025.03.27.",
+         "year": "2025",
+         "link": "https://irodalmiszemle.sk/2025/03/bordas-mate-versei-2/"
+        },
+        {
+         "title": "Tervrajzok: az audiovizualitás üledékei",
+         "source": "Forrás, 2025/5",
+         "year": "2025",
+         "link": "https://epa.oszk.hu/02900/02931/00297/pdf/EPA02931_forras_2025_05_023-024.pdf"
+        },
+        {
+         "title": "A séta; {*} szél",
+         "source": "Pannon Tükör, 2025/3",
+         "year": "2025"
+        }
+       ]
+      },
+      {
+       "title": "Kritikák a versekről",
+       "slug": "kritikak-a-versekrol",
+       "meta": "recepció",
+       "entries": [
+        {
+         "title": "Mărcuțiu-Rácz Dóra: majdnem-vegleges.pdf",
+         "source": "Kolozsvári Helikon, 2020/17 – Egy völgy elárasztása",
+         "year": "2020",
+         "link": "https://www.helikon.ro/bejegyzesek/majdnem-vegleges-pdf"
+        },
+        {
+         "title": "Krusovszky Dénes (KáDé): Bordás Máté: Egy völgy elárasztása",
+         "source": "magyarnarancs.hu, 2020.07.18.",
+         "year": "2020",
+         "link": "https://magyarnarancs.hu/konyv/bordas-mate-egy-volgy-elarasztasa-130842"
+        },
+        {
+         "title": "Csala Bertalan: Sötétség keveredik a lift fényével",
+         "source": "ESŐ, 2021/3 – Egy völgy elárasztása",
+         "year": "2021",
+         "link": "https://www.esolap.hu/authors/582-csala-bertalan/2506.html"
+        },
+        {
+         "title": "Szabados Attila: Lüktetésből terepmintát",
+         "source": "kortarsonline.hu, 2021.07.16. – Egy völgy elárasztása",
+         "year": "2021",
+         "link": "https://kortarsonline.hu/aktual/bordas-mate.html"
+        },
+        {
+         "title": "Mohácsi Balázs: Kortárs avantgárd? Búvópatakok és fel-felbukkanó tendenciák a kortárs magyar költészetben",
+         "source": "Studia Litteraria, 2022/3–4",
+         "year": "2022",
+         "link": "https://ojs.lib.unideb.hu/studia/article/view/12131"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "title": "Műfordítás",
+     "slug": "muforditas",
+     "works": [
+      {
+       "title": "Versfordítások",
+       "slug": "versforditasok",
+       "meta": "német és angol nyelvű költészet, 2016–2025",
+       "entries": [
+        {
+         "title": "Theodor Storm: Celeste",
+         "source": "Hévíz, 2016/4–5, 388–390.",
+         "year": "2016"
+        },
+        {
+         "title": "Anja Kampmann: Kísérlet a tengerről",
+         "source": "Versum, 2017.08.05.",
+         "year": "2017",
+         "link": "http://versumonline.hu/vers/kiserlet-a-tengerrol/"
+        },
+        {
+         "title": "Anja Kampmann: glóbusz",
+         "source": "Versum, 2017.10.05.",
+         "year": "2017",
+         "link": "http://versumonline.hu/vers/globusz/"
+        },
+        {
+         "title": "Christian Loidl: gondolj a labirintus kertészeire",
+         "source": "Versum, 2017.12.04.",
+         "year": "2017",
+         "link": "http://versumonline.hu/vers/gondolj-a-labirintus-kerteszeire/"
+        },
+        {
+         "title": "Donald Hall: Ember a halott gépben",
+         "source": "Versum, 2018.07.16.",
+         "year": "2018",
+         "link": "http://versumonline.hu/vers/ember-a-halott-gepben/"
+        },
+        {
+         "title": "Donald Hall: A hosszú folyó",
+         "source": "Versum, 2018.09.28.",
+         "year": "2018",
+         "link": "http://versumonline.hu/vers/a-hosszu-folyo/"
+        },
+        {
+         "title": "David Krause: Felhők",
+         "source": "Versum, 2018.11.25.",
+         "year": "2018",
+         "link": "http://versumonline.hu/vers/felhok/"
+        },
+        {
+         "title": "Ilma Rakusa: [A páfrányokat elmossa a folyó]",
+         "source": "Versum, 2018.12.03.",
+         "year": "2018",
+         "link": "http://versumonline.hu/vers/a-pafranyokat-elmossa-a-folyo/"
+        },
+        {
+         "title": "Sascha Kokot: Pára",
+         "source": "Versum, 2018.12.19.",
+         "year": "2018",
+         "link": "http://versumonline.hu/vers/para/"
+        },
+        {
+         "title": "Christiane Heidrich: Kantarei (ciklus)",
+         "source": "In: Tökéletes száműzetés. Versum Nemzetközi Költészeti Fesztivál & Workshop, 2019",
+         "year": "2019",
+         "link": "http://versumonline.hu/vers/kantarei-6/"
+        },
+        {
+         "title": "Anja Kampmann: Minszk; határvidék",
+         "source": "Forrás, 2019/7–8",
+         "year": "2019",
+         "link": "http://epa.oszk.hu/02900/02931/00233/pdf/EPA02931_forras_2019_07-08_091-092.pdf"
+        },
+        {
+         "title": "David Krause: emlékek egy folyóról",
+         "source": "Forrás, 2019/7–8",
+         "year": "2019",
+         "link": "http://www.forrasfolyoirat.hu/1907/krause.pdf"
+        },
+        {
+         "title": "Sascha Kokot: [az ágynemű kint marad]",
+         "source": "Forrás, 2019/7–8",
+         "year": "2019",
+         "link": "http://www.forrasfolyoirat.hu/1907/kokot.pdf"
+        },
+        {
+         "title": "Frank Bidart: Herbert White",
+         "source": "aszem.info, 2019.10.02.",
+         "year": "2019",
+         "link": "https://aszem.info/2019/10/frank-bidart-herbert-white/"
+        },
+        {
+         "title": "Forrest Gander: A hangzás",
+         "source": "Versum, 2019.10.31.",
+         "year": "2019",
+         "link": "http://versumonline.hu/vers/a-hangzas/"
+        },
+        {
+         "title": "Sascha Kokot: [itt kell a telet átvészelni]",
+         "source": "Versum, 2019.11.08.",
+         "year": "2019",
+         "link": "http://versumonline.hu/vers/itt-kell-a-telet-atveszelni/"
+        },
+        {
+         "title": "Margaret Atwood: Sejt",
+         "source": "Versum, 2019.11.18.",
+         "year": "2019",
+         "link": "http://versumonline.hu/vers/sejt/"
+        },
+        {
+         "title": "Alke Stachler: [szomorú igazság]",
+         "source": "Versum, 2019.11.25.",
+         "year": "2019",
+         "link": "http://versumonline.hu/vers/szomoru-igazsag/"
+        },
+        {
+         "title": "Frank Bidart: Önarckép, 1969",
+         "source": "Versum, 2020.01.03.",
+         "year": "2020",
+         "link": "http://versumonline.hu/vers/onarckep-1969/"
+        },
+        {
+         "title": "Sabine Schiffner: A lépcső tetején",
+         "source": "Versum, 2020.03.14.",
+         "year": "2020",
+         "link": "http://versumonline.hu/vers/a-lepcso-tetejen/"
+        },
+        {
+         "title": "Janin Wölke: two ballads of sexual dependency (#poppy style)",
+         "source": "Versum, 2020.04.02.",
+         "year": "2020",
+         "link": "http://versumonline.hu/vers/two-ballads-of-sexual-dependency-poppy-style/"
+        },
+        {
+         "title": "Anja Kampmann: [futólag]",
+         "source": "Versum, 2020.04.27.",
+         "year": "2020",
+         "link": "http://versumonline.hu/vers/futolag/"
+        },
+        {
+         "title": "Elisabeth Steinkellner: tekergetjük",
+         "source": "Versum, 2020.05.11.",
+         "year": "2020",
+         "link": "http://versumonline.hu/vers/tekergetjuk/"
+        },
+        {
+         "title": "Eavan Boland: Hogy alkottunk öreg földön új művészetet",
+         "source": "VersumOnline, 2020.06.09.",
+         "year": "2020",
+         "link": "https://versumonline.hu/vers/hogy-alkottunk-oreg-foldon-uj-muveszetet/"
+        },
+        {
+         "title": "Elke Erb: Mozdulj",
+         "source": "VersumOnline, 2020.08.03.",
+         "year": "2020",
+         "link": "https://versumonline.hu/vers/mozdulj/"
+        },
+        {
+         "title": "Léda Forgó: Rövid kirándulás a gyermekrákosztályon",
+         "source": "Pestext Reset, 2020",
+         "year": "2020",
+         "link": "https://pestextfestival.hu/wp-content/uploads/2020/09/Pestext_Zine_2020.pdf"
+        },
+        {
+         "title": "Anna Hetzer: Akt az ablaknál",
+         "source": "VersumOnline, 2020.12.03.",
+         "year": "2020",
+         "link": "https://versumonline.hu/vers/akt-az-ablaknal/"
+        },
+        {
+         "title": "Anja Kampmann: bernstein; planetárium",
+         "source": "VersumOnline, 2021.01.20.; 2021.12.24.",
+         "year": "2021",
+         "link": "https://versumonline.hu/vers/bernstein/"
+        },
+        {
+         "title": "Janin Wölke: artificializmus",
+         "source": "VersumOnline, 2021.05.02.",
+         "year": "2021",
+         "link": "https://versumonline.hu/vers/artificializmus/"
+        },
+        {
+         "title": "Margaret Atwood: A pillanat",
+         "source": "VersumOnline, 2021.06.20.",
+         "year": "2021",
+         "link": "https://versumonline.hu/vers/a-pillanat/"
+        },
+        {
+         "title": "Rose Ausländer: Tizenhárom rügy; Majd; Tovább; Adj",
+         "source": "VersumOnline, 2021. október–december",
+         "year": "2021",
+         "link": "https://versumonline.hu/vers/tizenharom-rugy/"
+        },
+        {
+         "title": "Rose Ausländer: Megülni egy sárkányt; Bánat II",
+         "source": "VersumOnline, 2022.03.09.",
+         "year": "2022",
+         "link": "https://versumonline.hu/vers/megulni-egy-sarkanyt-banat-ii/"
+        },
+        {
+         "title": "Delmore Schwartz: A cár gyermekeinek balladája",
+         "source": "VersumOnline, 2022.07.21.",
+         "year": "2022",
+         "link": "https://versumonline.hu/vers/a-car-gyermekeinek-balladaja/"
+        },
+        {
+         "title": "Christian Filips: A fiú vesz egy anyát a Kauflandban",
+         "source": "VersumOnline, 2022.09.23.",
+         "year": "2022",
+         "link": "https://versumonline.hu/vers/a-fiu-vesz-egy-anyat-a-kauflandban/"
+        },
+        {
+         "title": "Jan Skudlarek: fizikai munka; hártyásszárnyú; gyakorlat",
+         "source": "Forrás, 2022/11",
+         "year": "2022",
+         "link": "https://epa.oszk.hu/02900/02931/00269/pdf/EPA02931_forras_2022_11_064.pdf"
+        },
+        {
+         "title": "Andrea Grill: Egy élőlénynek lenni",
+         "source": "Forrás, 2022/11",
+         "year": "2022",
+         "link": "https://epa.oszk.hu/02900/02931/00269/pdf/EPA02931_forras_2022_11_065.pdf"
+        },
+        {
+         "title": "Anja Kampmann: [nemsokára a vegyi üzem…]; aberdeen angus",
+         "source": "Forrás, 2022/11",
+         "year": "2022",
+         "link": "https://epa.oszk.hu/02900/02931/00269/pdf/EPA02931_forras_2022_11_063.pdf"
+        },
+        {
+         "title": "Elisabeth Steinkellner: sejtjük",
+         "source": "Forrás, 2022/11",
+         "year": "2022",
+         "link": "https://epa.oszk.hu/02900/02931/00269/pdf/EPA02931_forras_2022_11_062.pdf"
+        },
+        {
+         "title": "Hans Magnus Enzensberger: Az új ember",
+         "source": "VersumOnline, 2022.12.02.",
+         "year": "2022",
+         "link": "https://versumonline.hu/vers/az-uj-ember/"
+        },
+        {
+         "title": "Rose Ausländer: Levelek II",
+         "source": "VersumOnline, 2023.02.24.",
+         "year": "2023",
+         "link": "https://versumonline.hu/vers/levelek-ii/"
+        },
+        {
+         "title": "Sandra Hubinger: Ének; Április; Éjszaka odakint",
+         "source": "1749.hu, 2023. április–július",
+         "year": "2023",
+         "link": "https://1749.hu/kereses?search=sandra+hubinger"
+        },
+        {
+         "title": "Eva Brunner: seven in bed",
+         "source": "VersumOnline, 2023.09.19.",
+         "year": "2023",
+         "link": "https://versumonline.hu/vers/seven-in-bed/"
+        },
+        {
+         "title": "Sandra Hubinger: Fehér album; Összegabalyodva",
+         "source": "VersumOnline, 2024. október",
+         "year": "2024",
+         "link": "https://versumonline.hu/szerzo/sandra-hubinger/"
+        },
+        {
+         "title": "Monika Rinck: green faces: hát valami ilyesmik vagyunk az űrben",
+         "source": "VersumOnline, 2025.05.21.",
+         "year": "2025",
+         "link": "https://versumonline.hu/vers/green-faces-hat-valami-ilyesmik-vagyunk-a-terben/"
+        },
+        {
+         "title": "Rose Ausländer: Jöjj hát, Sebestyén",
+         "source": "VersumOnline, 2025.06.06.",
+         "year": "2025",
+         "link": "https://versumonline.hu/vers/jojj-hat-sebestyen/"
+        }
+       ]
+      },
+      {
+       "title": "Wolfgang Borchert rövidprózái",
+       "slug": "wolfgang-borchert",
+       "meta": "fordítások · Babits Mihály műfordítói ösztöndíj, 2018",
+       "entries": [
+        {
+         "title": "Wolfgang Borchert: El, el; A város",
+         "source": "Ambroozia, 2018/1",
+         "year": "2018",
+         "link": "http://www.ambroozia-archiv.hu/2018-1/127-2018-1-muforditas/549-wolfgang-borchert-el-el"
+        },
+        {
+         "title": "Wolfgang Borchert: Búcsúzás nélküli generáció; Vonatok délután és éjszakánként; Maradj még, Zsiráf",
+         "source": "Helikon, 2018/6",
+         "year": "2018",
+         "link": "https://www.helikon.ro/rovidprozak-13/"
+        },
+        {
+         "title": "Wolfgang Borchert: Akkor nincs más választásod; Hangok a levegőben ‒ az éjszakában",
+         "source": "Helikon, 2018/14",
+         "year": "2018",
+         "link": "https://www.helikon.ro/rovidprozak-15/"
+        },
+        {
+         "title": "Egy nemzedék hírnöke (Wolfgang Borchert írásairól)",
+         "source": "1749.hu, 2020 – esszé",
+         "year": "2020"
+        }
+       ]
+      },
+      {
+       "title": "A ránk bízott kert",
+       "slug": "a-rank-bizott-kert",
+       "meta": "Ökoköltészet – Világirodalmi antológia · Prae Kiadó, 2021",
+       "about": [
+        "Szerkesztette Péczely Dóra; válogatta Bordás Máté és Sipos Tamás. 110 oldal.",
+        "ISBN 978-615-6199-19-5"
+       ],
+       "entries": [
+        {
+         "title": "A szennyvíztisztító telepek anyai dorombolása: Utószó",
+         "source": "In: A ránk bízott kert, 86–97.",
+         "year": "2021"
+        }
+       ]
+      },
+      {
+       "title": "Fordítói műhelyek",
+       "slug": "forditoi-muhelyek",
+       "meta": "ViceVERSa magyar–német, német–magyar fordítói workshopok",
+       "entries": [
+        {
+         "title": "ViceVERSa fordítói workshop",
+         "source": "Toledo-program, Berlin, 2019",
+         "year": "2019"
+        },
+        {
+         "title": "ViceVERSa",
+         "source": "JelenkorOnline, 2019.03.12.",
+         "year": "2019",
+         "link": "http://www.jelenkor.net/visszhang/1283/viceversa"
+        },
+        {
+         "title": "A fordítás nem magányos munka – beszámoló a 2022-es ViceVERSa fordítói műhelyről",
+         "source": "VersumOnline, 2022.09.27.",
+         "year": "2022",
+         "link": "https://versumonline.hu/hatter/a-forditas-nem-maganyos-munka-beszamolo-a-2022-es-viceversa-forditoi-muhelyrol/"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "title": "Irodalomtudomány",
+     "slug": "irodalomtudomany",
+     "works": [
+      {
+       "title": "A poszthumán líra",
+       "slug": "poszthuman-lira",
+       "meta": "doktori kutatás · ELTE Irodalomtudományi Doktori Iskola, 2021–2025",
+       "about": [
+        "A poszthumán líra fogalma a magyar költészetben."
+       ]
+      },
+      {
+       "title": "Tanulmányok",
+       "slug": "tanulmanyok",
+       "meta": "szakcikkek, könyvfejezetek",
+       "entries": [
+        {
+         "title": "Generatív költészet és szerzői ágencia. Nick Monfort: Taroko Gorge",
+         "source": "Helikon, 2026/1, 132–153.",
+         "year": "2026",
+         "note": "szakcikk"
+        },
+        {
+         "title": "Variációk emberre: Humanizmus–antropocentrizmus–poszthumanizmus–posztantropocentrizmus: fogalmi relációk a poszthumán diskurzus vonatkozásában",
+         "source": "Irodalmi Szemle, 2025/6, 34–48.",
+         "year": "2025",
+         "note": "szakcikk"
+        },
+        {
+         "title": "Poszthumanizmus és poszthermeneutika a költészetben: líra a technológia felől",
+         "source": "Tempevölgy, 2025/2, 64–76.",
+         "year": "2025",
+         "note": "szakcikk"
+        },
+        {
+         "title": "A konvencionalitás kérdése a poszthumán lírában",
+         "source": "In: Bartha Ádám – Horváth Márk (szerk.): Poli-P. Poszthumán perspektívák. Budapest: Kijárat Kiadó – I.T.E.M. Alapítvány, 2024, 165–189.",
+         "year": "2024",
+         "note": "könyvfejezet"
+        },
+        {
+         "title": "Generatív zene és generatív líra: A szerzői ágencia megosztásának poszthumán jellege",
+         "source": "Tempevölgy, 2024/3, 54–67.",
+         "year": "2024",
+         "note": "szakcikk"
+        },
+        {
+         "title": "Átváltozó állat, ember, szöveg – egy digitális költemény értelmezése a poszthumanizmus felől",
+         "source": "In: Lovas Kiss Antal – László Borbála (szerk.): Tanulmányok az ember és állat kapcsolat értelmezéséhez II. Debrecen: Debreceni Egyetem, Antrozoológiai kutatócsoport, 2024, 69–87.",
+         "year": "2024",
+         "note": "szaktanulmány"
+        },
+        {
+         "title": "Az identitás- és átváltozáslíra vázlata",
+         "source": "Filológiai Közlöny, LXVIII (2022)/2, 101–143.",
+         "year": "2022",
+         "note": "szakcikk"
+        },
+        {
+         "title": "Antropocén terek Nemes Nagy Ágnes és Oravecz Imre verseiben",
+         "source": "In: Daróczi Jakab – Hajdu Ildikó – Nyerges Csaba – Prótár Noémi (szerk.): Határok és határátlépések. Budapest: ELTE Eötvös József Collegium, 2022, 289–304.",
+         "year": "2022",
+         "note": "szaktanulmány"
+        },
+        {
+         "title": "A pályaudvar alatt: Nemes Nagy Ágnes és az antropocén",
+         "source": "PRAE, 2021/1, 116–129.",
+         "year": "2021",
+         "note": "szakcikk"
+        },
+        {
+         "title": "Hamar elfelejtjük az apályt és a dagályt: Rövid bevezető a német antropocén lírába",
+         "source": "Szépirodalmi Figyelő, 2019/1, 94–105.",
+         "year": "2019",
+         "note": "szakcikk"
+        }
+       ]
+      },
+      {
+       "title": "Kritikák, recenziók",
+       "slug": "kritikak",
+       "meta": "tudományos kritikák",
+       "entries": [
+        {
+         "title": "Az ökokritika irodalomelméleti gondolkodásának határai, határátlépései (Smid Róbert: Az ökokritika dilemmái)",
+         "source": "Alföld, 75 (2024)/2, 101–104.",
+         "year": "2024",
+         "note": "kritika"
+        },
+        {
+         "title": "Lesen im Zeitalter der künstlichen Intelligenz. Über den Wandel einer Kulturtechnik. By Florian Rötzer. Bielefeld: transcript, 2023",
+         "source": "Central European Cultures, 4 (2024)/1, 225–233.",
+         "year": "2024",
+         "note": "recenzió"
+        },
+        {
+         "title": "Poszthumanizmus-problémák",
+         "source": "Szépirodalmi Figyelő, 2020/4, 116–122.",
+         "year": "2020",
+         "note": "recenzió"
+        }
+       ]
+      },
+      {
+       "title": "Esszék",
+       "slug": "esszek",
+       "meta": "esszék, szócikk, utószó",
+       "entries": [
+        {
+         "title": "Generatív monstrum. Avagy mit ihletett Kafka férge, Cortázar axolotlja és Langelaan legye",
+         "source": "PRAE.HU, 2025",
+         "year": "2025",
+         "note": "esszé"
+        },
+        {
+         "title": "A szennyvíztisztító telepek anyai dorombolása: Utószó",
+         "source": "In: Péczely Dóra (szerk.): A ránk bízott kert. Ökoköltészet – Világirodalmi antológia. Budapest: Prae Kiadó, 2021, 86–97.",
+         "year": "2021",
+         "note": "esszé"
+        },
+        {
+         "title": "Egy nemzedék hírnöke (Wolfgang Borchert írásairól)",
+         "source": "1749.hu, 2020",
+         "year": "2020",
+         "note": "esszé"
+        },
+        {
+         "title": "beredőződés",
+         "source": "In: Horváth Gideon – Süveges Rita – Zilahi Anna (szerk.): Extrodaesia. Enciklopédia egy emberközpontúságot meghaladó világhoz. Budapest: Typotex, 2019, 21–23.",
+         "year": "2019",
+         "note": "szócikk"
+        }
+       ]
+      },
+      {
+       "title": "Előadások",
+       "slug": "eloadasok",
+       "meta": "konferencia-előadások",
+       "entries": [
+        {
+         "title": "A transzhumanista hagyomány akadályai a kortárs magyar lírában",
+         "source": "konferencia-előadás, 2025",
+         "year": "2025"
+        },
+        {
+         "title": "The Vitality of Metaphor in Ágnes Nemes Nagy's Poetry",
+         "source": "előadás, 2025",
+         "year": "2025"
+        },
+        {
+         "title": "A mesterséges intelligencia hatása a lírai ihletre",
+         "source": "konferencia-előadás, 2024 (Ágoston Enikő Annával)",
+         "year": "2024"
+        },
+        {
+         "title": "The Possibilities of a Posthuman Interpretation through Acoustic Effects in Jorie Graham's Poem \"From Inside the MRI\"",
+         "source": "conference presentation, 2023",
+         "year": "2023"
+        },
+        {
+         "title": "Generatív líra és a szerzőség kérdése a poszthumán líra fogalmának értelmezésében (Nick Monfort: Taroko Gorge)",
+         "source": "előadás, 2023",
+         "year": "2023"
+        },
+        {
+         "title": "A vakvezető kutya és a technológia viszonya poszthumán kontextusban",
+         "source": "konferencia-előadás, 2023",
+         "year": "2023"
+        },
+        {
+         "title": "Nemes Nagy Ágnes és az antropocén",
+         "source": "konferencia-előadás, 2021",
+         "year": "2021"
+        }
+       ]
+      },
+      {
+       "title": "Digitális kritikai kiadás",
+       "slug": "digitalis-kritikai-kiadas",
+       "meta": "kutatói asszisztens, 2025",
+       "about": [
+        "Szabó Lőrinc: Te meg a világ – digitális kritikai kiadás. Digitális Bölcsészet Tanszék, Digitális Örökség Nemzeti Laboratórium, 2025. január–szeptember."
+       ]
+      }
+     ]
+    },
+    {
+     "title": "Digitális költészet",
+     "slug": "digitalis-kolteszet",
+     "works": [
+      {
+       "title": "Generatív líra",
+       "slug": "generativ-lira",
+       "meta": "tanulmányok és előadások a digitális költészetről",
+       "entries": [
+        {
+         "title": "Generatív költészet és szerzői ágencia. Nick Monfort: Taroko Gorge",
+         "source": "Helikon, 2026/1, 132–153.",
+         "year": "2026",
+         "note": "szakcikk"
+        },
+        {
+         "title": "Átváltozó állat, ember, szöveg – egy digitális költemény értelmezése a poszthumanizmus felől",
+         "source": "In: Lovas Kiss Antal – László Borbála (szerk.): Tanulmányok az ember és állat kapcsolat értelmezéséhez II. Debrecen: Debreceni Egyetem, Antrozoológiai kutatócsoport, 2024, 69–87.",
+         "year": "2024",
+         "note": "szaktanulmány"
+        },
+        {
+         "title": "Generatív zene és generatív líra: A szerzői ágencia megosztásának poszthumán jellege",
+         "source": "Tempevölgy, 2024/3, 54–67.",
+         "year": "2024",
+         "note": "szakcikk"
+        },
+        {
+         "title": "Generatív líra és a szerzőség kérdése a poszthumán líra fogalmának értelmezésében (Nick Monfort: Taroko Gorge)",
+         "source": "előadás, 2023",
+         "year": "2023"
+        }
+       ]
+      },
+      {
+       "title": "Saját digitális művek",
+       "slug": "sajat-digitalis-muvek",
+       "meta": "előkészületben",
+       "about": [
+        "Hamarosan."
+       ]
+      }
+     ]
+    },
+    {
+     "title": "Szerkesztés",
+     "slug": "szerkesztes",
+     "works": [
+      {
+       "title": "Versum",
+       "slug": "versum",
+       "meta": "online világirodalmi folyóirat · szerkesztő, 2018–",
+       "links": [
+        {
+         "label": "versumonline.hu",
+         "href": "https://versumonline.hu/"
+        }
+       ]
+      },
+      {
+       "title": "ROST",
+       "slug": "rost",
+       "meta": "irodalmi lap · szerkesztő, 2017–2023",
+       "links": [
+        {
+         "label": "issuu.com/rostirodalmilap",
+         "href": "https://issuu.com/rostirodalmilap"
+        }
+       ]
+      },
+      {
+       "title": "Fiatal Írók Szövetsége",
+       "slug": "fisz",
+       "meta": "elnökségi tag, sorozatszerkesztő, műhelyvezető · 2025–"
+      }
+     ]
+    },
+    {
+     "title": "Képregény",
+     "slug": "kepregeny",
+     "works": [
+      {
+       "title": "A lámpásvivő",
+       "slug": "a-lampasvivo",
+       "meta": "képregény · aszem.info",
+       "entries": [
+        {
+         "title": "A lámpásvivő",
+         "source": "aszem.info, 2017.09.14.",
+         "year": "2017",
+         "link": "https://aszem.info/2017/09/lampasvivo-bordas-mate-kepregenye/"
+        },
+        {
+         "title": "A lámpásvivő. Bányászok",
+         "source": "aszem.info, 2018.06.06.",
+         "year": "2018",
+         "link": "https://aszem.info/2018/06/bordas-mate-a-lampasvivo-banyaszok/"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "title": "Zene",
+   "slug": "zene",
+   "palette": "kobalt",
+   "children": [
+    {
+     "title": "Kísérleti",
+     "slug": "kiserleti",
+     "works": [
+      {
+       "title": "Hangszőnyeg",
+       "slug": "hangszonyeg",
+       "meta": "böngészős hangszer",
+       "about": [
+        "Extrém időnyújtáson alapuló hangszövő hangszer a böngészőben."
+       ]
+      }
+     ]
+    },
+    {
+     "title": "Techno",
+     "slug": "techno",
+     "works": [
+      {
+       "title": "Előkészületben",
+       "slug": "elokeszuletben",
+       "meta": "hamarosan",
+       "about": [
+        "Ide kerülnek a trackek; az embed mezőbe Bandcamp- vagy SoundCloud-lejátszó illeszthető."
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "shared": [
+  {
+   "title": "Zenés felolvasás",
+   "slug": "zenes-felolvasas",
+   "in": [
+    "irodalom",
+    "zene"
+   ],
+   "works": [
+    {
+     "title": "Áradás-terv",
+     "slug": "aradas-terv",
+     "meta": "hangjáték · aszem.info, 2020.03.25.",
+     "links": [
+      {
+       "label": "Meghallgatom (aszem.info)",
+       "href": "https://aszem.info/2020/03/bordas-mate-aradas-terv-hangjatek/"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
