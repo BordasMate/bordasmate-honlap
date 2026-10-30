@@ -1,0 +1,15 @@
+# Nincs build lépés: a gyökérkönyvtár tartalma közvetlenül kikerül.
+[build]
+  publish = "."
+
+# Minden ismeretlen útvonalat (pl. /irodalom/vers) az index.html szolgál ki,
+# a megfelelő oldalt a böngészőben futó kód rajzolja ki.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

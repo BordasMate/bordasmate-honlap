@@ -1,0 +1,161 @@
+:root {
+  --bg: #07080a;
+  --text: #ecebe6;
+  --text-dim: #9fa2a8;
+  --display: "Syne", system-ui, sans-serif;
+  --body: "Literata", Georgia, serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+
+#surface {
+  position: fixed;
+  inset: 0;
+  display: block;
+  touch-action: manipulation;
+}
+
+/* ---------- sejtfeliratok ---------- */
+
+#cells {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cell-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  line-height: 1.04;
+  font-family: var(--display);
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+  text-shadow: 0 0 2px #000, 0 0 14px rgba(0, 0, 0, .95), 0 1px 0 rgba(0, 0, 0, .8);
+  pointer-events: none;
+  transition: opacity .35s ease, color .25s ease, letter-spacing .4s ease;
+  will-change: transform;
+  user-select: none;
+}
+a.cell-label { pointer-events: auto; padding: .3em .4em; border-radius: 1em; }
+a.cell-label:hover, a.cell-label:focus-visible { color: #fff; outline: none; text-shadow: 0 0 2px #000, 0 0 18px rgba(255, 255, 255, .35), 0 0 30px rgba(0, 0, 0, .9); }
+a.cell-label:focus-visible { box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); }
+.cell-label[data-kind="nav"] { color: #d6d8dc; }
+.cell-label[data-kind="name"] { color: #f6f5f1; }
+.cell-label.gone { opacity: 0 !important; pointer-events: none; }
+
+/* ---------- műoldal szövegpanel ---------- */
+
+#panel {
+  position: fixed;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(14px, 3vw, 34px) clamp(16px, 3vw, 40px) clamp(24px, 4vw, 48px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s ease;
+  font-size: clamp(16px, .95rem + .25vw, 19px);
+  line-height: 1.62;
+  scrollbar-width: thin;
+  scrollbar-color: #5a5e66 transparent;
+  outline: none;
+}
+#panel.show { opacity: 1; pointer-events: auto; }
+
+.crumbs {
+  display: flex;
+  gap: .6em;
+  flex-wrap: wrap;
+  margin: 0 0 .9em;
+  font-family: var(--display);
+  font-size: .72em;
+  font-weight: 650;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.crumbs a { color: var(--text-dim); text-decoration: none; }
+.crumbs a:hover { color: var(--text); }
+
+.work-title {
+  margin: 0 0 .2em;
+  font-family: var(--display);
+  font-weight: 750;
+  font-size: clamp(1.6em, 1.2em + 1.4vw, 2.4em);
+  line-height: 1.02;
+  letter-spacing: -.01em;
+}
+
+.meta { margin: 0 0 1.4em; font-style: italic; color: var(--text-dim); }
+.about { margin: 0 0 1em; }
+
+.poem {
+  white-space: pre-wrap;
+  margin: 1.6em 0;
+  padding-left: 1.1em;
+  border-left: 2px solid rgba(236, 235, 230, .35);
+  line-height: 1.75;
+}
+
+.figure { margin: 0 0 1.4em; }
+.figure img { display: block; max-width: 100%; height: auto; border-radius: 10px; }
+.audio { width: 100%; margin: 1em 0; filter: invert(.92) hue-rotate(180deg); }
+.embed { position: relative; margin: 1.4em 0; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #111; }
+.embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+.links { list-style: none; padding: 0; margin: 1.6em 0 0; display: flex; flex-wrap: wrap; gap: .6em; }
+.links a {
+  display: inline-block;
+  padding: .45em 1.1em;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d9dbe0, #7c8089 55%, #b9bcc3);
+  color: #0b0c0e;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: .85em;
+  letter-spacing: .06em;
+  text-decoration: none;
+  box-shadow: 0 0 0 1px #000, 0 6px 16px rgba(0, 0, 0, .5);
+  transition: filter .2s ease;
+}
+.links a:hover { filter: brightness(1.15); }
+
+/* ---------- lábléc ---------- */
+
+.site-foot {
+  position: fixed;
+  right: 12px;
+  bottom: 8px;
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(220, 222, 226, .45);
+  text-shadow: 0 0 6px #000;
+  pointer-events: auto;
+}
+.site-foot a { color: rgba(230, 232, 236, .7); text-decoration: none; }
+
+/* ---------- WebGL nélkül ---------- */
+
+.fallback { position: fixed; inset: 0; display: grid; place-content: center; text-align: center; gap: 1rem; pointer-events: auto; background: radial-gradient(circle at 50% 40%, #2a2d33, #07080a 70%); }
+.fallback .fb-name { font-family: var(--display); font-size: clamp(32px, 7vw, 72px); font-weight: 750; text-transform: uppercase; margin: 0; }
+.fallback ul { list-style: none; padding: 0; margin: 0; display: flex; gap: 1.2rem; justify-content: center; flex-wrap: wrap; }
+.fallback a { color: var(--text); font-family: var(--display); font-size: 1.2rem; }
+
+.sr-only { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
