@@ -256,3 +256,65 @@ html.mono .cell-label.glitch { animation-name: label-glitch-mono; }
   text-decoration: none;
 }
 .e-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- felső útvonalsáv: Bordás Máté › menü › almenü › mű ---------- */
+
+#crumbs {
+  position: fixed;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  max-width: min(980px, calc(100vw - 32px));
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  pointer-events: none;
+}
+#crumbs[hidden] { display: none; }
+#crumbs a, #crumbs span { pointer-events: auto; }
+.crumb {
+  color: rgba(225, 228, 235, .72);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+  text-shadow: 0 0 2px #000, 0 0 12px rgba(0, 0, 0, .95);
+  transition: color .2s ease;
+}
+a.crumb:hover, .crumb-group a:hover { color: #fff; }
+.crumb-home {
+  color: #f2f2ee;
+  font-weight: 760;
+  font-size: 15px;
+  letter-spacing: .1em;
+  padding-left: 12px;
+  border-left: 2px solid var(--mono-tint, #cfd3dc);
+}
+.crumb-here {
+  color: var(--mono-tint, #fff);
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: .08em;
+  line-height: 1.15;
+  text-shadow: 0 0 2px #000, 0 0 16px rgba(0, 0, 0, .95), 0 0 24px color-mix(in srgb, var(--mono-tint, #fff) 35%, transparent);
+}
+.crumb-group { display: inline-flex; align-items: baseline; gap: 8px; }
+.crumb-group a { color: rgba(225, 228, 235, .78); text-decoration: none; font-size: 13px; font-weight: 650; text-shadow: 0 0 2px #000, 0 0 12px rgba(0, 0, 0, .95); }
+.crumb-cap { color: var(--mono-tint, #fff); font-size: 15px; letter-spacing: 0; }
+.crumb-sep { color: rgba(225, 228, 235, .35); font-size: 15px; letter-spacing: 0; text-shadow: 0 0 8px #000; }
+a.crumb:focus-visible, .crumb-group a:focus-visible { outline: 2px solid var(--mono-tint, #fff); outline-offset: 3px; border-radius: 2px; }
+
+/* az éppen megnyitott mű sejtje a térben */
+.cell-label.active { color: var(--mono-tint, #fff); }
+
+@media (max-width: 640px) {
+  #crumbs { top: 10px; left: 12px; right: 12px; gap: 2px 8px; }
+  .crumb { font-size: 11px; }
+  .crumb-home { font-size: 12px; padding-left: 8px; }
+  .crumb-here { font-size: 17px; }
+}

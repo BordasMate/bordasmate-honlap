@@ -445,8 +445,9 @@ export function createLidar(gl) {
         for (let l = 0; l < 3; l++) pushPt(px, 4 + l * 6 + Math.sin(a * 0.7 + s.time) * 1.5, pz, 2.6, st.col[0] * 1.3, st.col[1] * 1.3, st.col[2] * 1.3);
       }
     });
-    const hv = s.cells.find((b) => b.hover > 0.05 && b.world);
-    if (hv) {
+    // fényes gyűrű az egérrel kiemelt és az éppen megnyitott sejt körül
+    for (const hv of s.cells) {
+      if (!(hv.hover > 0.05) || !hv.world) continue;
       const w = hv.world, N = 120, glow = s.glow[hv.tint] || [1, 1, 1];
       for (let a = 0; a < N; a++) {
         const ang = (a / N) * Math.PI * 2;

@@ -100,8 +100,6 @@ const monoOf = (cat, sub) => hexRgb(sub && isShared(sub) ? settings.sharedMono |
 const subKey = (cat, sub) => (isShared(sub) ? "~" + sub.slug : `/${cat.slug}/${sub.slug}`);
 const subHref = (cat, sub) => link(`/${cat.slug}/${sub.slug}`);
 
-const homeItem = (z) => ({ key: "/", label: site.name, href: link("/"), kind: "nav", tint: tintOf(site.palette), size: z.nav, minR: z.minNav });
-const homeCorner = (W, H, z) => ({ "/": z.narrow ? { x: W * 0.2, y: H * 0.06 } : { x: W * 0.08, y: H * 0.1 } });
 
 // halmazközéppontok: két halmaz egymás mellett (mobilon egymás alatt), több esetén körben
 function setCenters(n, W, H, z, cy) {
@@ -138,84 +136,78 @@ function sceneFor(r, W, H) {
       comp: { x: W / 2, y: H * 0.56 }, maxGrow: 1.15,
     };
   }
+  // menükben: a menü neve a felső útvonalsávba kerül (Bordás Máté › Irodalom › …),
+  // a térben csak az almenük maradnak, egy tömör csoportban
+  const top = z.narrow ? 74 : 64;
   if (r.type === "category") {
     const { cat } = r, t = tintOf(cat.palette);
     // a kategória halmaza középen, a vele metsző halmazok a szélén
     const others = site.categories.filter((c) => c !== cat && shared.some((s) => s.in.includes(cat.slug) && s.in.includes(c.slug)));
-    const sets = [{ x: z.narrow ? W / 2 : W * (others.length ? 0.42 : 0.5), y: H * (z.narrow ? (others.length ? 0.4 : 0.48) : 0.5), tint: t }];
+    const sets = [{ x: z.narrow ? W / 2 : W * (others.length ? 0.42 : 0.5), y: H * (z.narrow ? (others.length ? 0.44 : 0.52) : 0.54), tint: t }];
     others.forEach((c, i) => sets.push(z.narrow
-      ? { x: W / 2, y: H * 0.92, tint: tintOf(c.palette) }
-      : { x: W * 0.9, y: H * (0.5 + (i - (others.length - 1) / 2) * 0.35), tint: tintOf(c.palette) }));
+      ? { x: W / 2, y: H * 0.93, tint: tintOf(c.palette) }
+      : { x: W * 0.9, y: H * (0.54 + (i - (others.length - 1) / 2) * 0.35), tint: tintOf(c.palette) }));
     const items = [
-      { key: "/" + cat.slug, label: cat.title, kind: "center", tint: t, size: z.center, minR: z.minChild * 1.2, sets: [0], nucleus: 0 },
       ...cat.children.map((s) => ({ key: subKey(cat, s), label: s.title, href: subHref(cat, s), kind: "child", tint: t, size: z.child, minR: z.minChild, sets: [0] })),
       ...shared.filter((s) => s.in.includes(cat.slug)).map((s) => ({
         key: "~" + s.slug, label: s.title, href: subHref(cat, s), kind: "child", tint: t, size: z.child, minR: z.minChild,
         sets: [0, ...others.map((c, i) => (s.in.includes(c.slug) ? i + 1 : -1)).filter((k) => k > 0)],
       })),
       ...others.map((c, i) => ({ key: "/" + c.slug, label: c.title, href: link("/" + c.slug), kind: "nav", tint: tintOf(c.palette), size: z.nav, minR: z.minNav * 1.1, sets: [i + 1], nucleus: i + 1 })),
-      homeItem(z),
       ...drifters(t, W),
     ];
-    return { title: `${cat.title} — ${site.name}`, h1: cat.title, items, sets, anchors: homeCorner(W, H, z), monoTint: monoOf(cat), startAngle: -Math.PI / 2 + 0.3 };
+    return { title: `${cat.title} — ${site.name}`, h1: cat.title, items, sets, monoTint: monoOf(cat), startAngle: -Math.PI / 2, topInset: top, maxGrow: 1.15 };
   }
   if (r.type === "sub") {
     const { cat, sub } = r, t = tintOf(cat.palette), key = subKey(cat, sub);
     const works = sub.works || [];
+    const workItems = (sets) => works.map((w) => ({ key: `${key}/${w.slug}`, label: w.title, href: link(`/${cat.slug}/${sub.slug}/${w.slug}`), kind: "child", tint: t, size: z.child, minR: z.minChild, sets }));
     if (isShared(sub)) {
-      // közös alkategória: minden a metszetben, a két kategória a két szélen
+      // közös alkategória: a művek a metszetben, a két kategória a két szélen
       const cats = sub.in.map(catBySlug).filter(Boolean);
-      const C = setCenters(cats.length, W, H, z, H * 0.52).map((c) => (z.narrow ? c : { x: c.x < W / 2 ? W * 0.14 : W * 0.86, y: c.y }));
-      const all = cats.map((_, k) => k);
+      const C = setCenters(cats.length, W, H, z, H * 0.56).map((c) => (z.narrow ? c : { x: c.x < W / 2 ? W * 0.14 : W * 0.86, y: c.y }));
       const items = [
-        { key, label: sub.title, kind: "center", tint: t, size: z.center, minR: z.minChild * 1.1, sets: all },
-        ...works.map((w) => ({ key: `${key}/${w.slug}`, label: w.title, href: link(`/${cat.slug}/${sub.slug}/${w.slug}`), kind: "child", tint: t, size: z.child, minR: z.minChild, sets: all })),
+        ...workItems(cats.map((_, k) => k)),
         ...cats.map((c, k) => ({ key: "/" + c.slug, label: c.title, href: link("/" + c.slug), kind: "nav", tint: tintOf(c.palette), size: z.nav, minR: z.minNav * 1.1, sets: [k], nucleus: k })),
-        homeItem(z),
         ...drifters(t, W),
       ];
-      return { title: `${sub.title} — ${site.name}`, h1: sub.title, items, sets: cats.map((c, k) => ({ ...C[k], tint: tintOf(c.palette) })), anchors: homeCorner(W, H, z), monoTint: monoOf(cat, sub) };
+      return { title: `${sub.title} — ${site.name}`, h1: sub.title, items, sets: cats.map((c, k) => ({ ...C[k], tint: tintOf(c.palette) })), monoTint: monoOf(cat, sub), topInset: top };
     }
-    const items = [
-      { key, label: sub.title, kind: "center", tint: t, size: z.center, minR: z.minChild * 1.1, sets: [0], nucleus: 0 },
-      ...works.map((w) => ({ key: `${key}/${w.slug}`, label: w.title, href: link(`/${cat.slug}/${sub.slug}/${w.slug}`), kind: "child", tint: t, size: z.child, minR: z.minChild, sets: [0] })),
-      { key: "/" + cat.slug, label: cat.title, href: link("/" + cat.slug), kind: "nav", tint: t, size: z.nav, minR: z.minNav, sets: [0] },
-      homeItem(z),
-      ...drifters(t, W),
-    ];
-    return { title: `${sub.title} — ${site.name}`, h1: sub.title, items, sets: [{ x: W / 2, y: H * 0.5, tint: t }], anchors: homeCorner(W, H, z), monoTint: monoOf(cat, sub), startAngle: -Math.PI / 2 - 0.4 };
+    return {
+      title: `${sub.title} — ${site.name}`, h1: sub.title, items: [...workItems([0]), ...drifters(t, W)],
+      sets: [{ x: W / 2, y: H * 0.55, tint: t }], monoTint: monoOf(cat, sub), startAngle: -Math.PI / 2, topInset: top, maxGrow: 1.2,
+    };
   }
   if (r.type === "work") {
     const { cat, sub, work } = r, t = tintOf(cat.palette), key = subKey(cat, sub);
     const panel = z.narrow
       ? (() => { const hh = (H * 0.54 - 12) / 2; return { x: W / 2, y: H - 12 - hh, hw: W / 2 - 12, hh, tint: t }; })()
-      : (() => { const hw = Math.min(400, W * 0.27); return { x: W - 24 - hw - Math.max(0, W * 0.08 - 40), y: H * 0.52, hw, hh: H * 0.42, tint: t }; })();
+      : (() => { const hw = Math.min(400, W * 0.27); return { x: W - 24 - hw - Math.max(0, W * 0.08 - 40), y: H * 0.54, hw, hh: H * 0.4, tint: t }; })();
+    // az alkategória összes műve együtt marad; az éppen megnyitott kiemelve
     const items = [
-      { key: `${key}/${work.slug}`, label: work.title, kind: "center", tint: t, size: z.center * 0.85, minR: z.minChild, sets: [0], nucleus: 0 },
-      { key, label: sub.title, href: subHref(cat, sub), kind: "nav", tint: t, size: z.nav, minR: z.minNav, sets: [0] },
-      { key: "/" + cat.slug, label: cat.title, href: link("/" + cat.slug), kind: "nav", tint: t, size: z.nav, minR: z.minNav, sets: [0] },
-      homeItem(z),
-      ...(sub.works || []).filter((w) => w !== work).map((w) => ({ key: `${key}/${w.slug}`, label: w.title, href: link(`/${cat.slug}/${sub.slug}/${w.slug}`), kind: "child", tint: t, size: z.child * 0.8, minR: z.minChild * 0.75, sets: [0] })),
+      ...(sub.works || []).map((w) => w === work
+        ? { key: `${key}/${w.slug}`, label: w.title, kind: "child", active: true, tint: t, size: z.child * 0.9, minR: z.minChild * 0.85, sets: [0] }
+        : { key: `${key}/${w.slug}`, label: w.title, href: link(`/${cat.slug}/${sub.slug}/${w.slug}`), kind: "child", tint: t, size: z.child * 0.8, minR: z.minChild * 0.75, sets: [0] }),
       ...drifters(t, W).slice(0, z.narrow ? 4 : 7),
     ];
     return {
       title: `${work.title} — ${site.name}`, h1: work.title, panel, work, items,
-      sets: [{ x: W * 0.22, y: H * 0.45, tint: t }], anchors: homeCorner(W, H, z), monoTint: monoOf(cat, sub),
-      startAngle: z.narrow ? -Math.PI / 2 : Math.PI,
+      sets: [{ x: z.narrow ? W / 2 : (panel.x - panel.hw) * 0.56, y: z.narrow ? (top + panel.y - panel.hh) / 2 : H * 0.5, tint: t }], maxGrow: 0.85,
+      monoTint: monoOf(cat, sub), startAngle: -Math.PI / 2, topInset: top,
     };
   }
   return {
     title: `Nincs ilyen oldal — ${site.name}`, h1: "Nincs ilyen oldal", monoTint: hexRgb(paletteOf("titan").mono || "#d1dbf2"),
     items: [
       { key: "/404", label: "Ez a sejt még nem nőtt ki", kind: "center", tint: 0, size: z.center * 0.8, minR: z.minChild },
-      homeItem(z),
       ...drifters(0, W),
     ],
+    topInset: z.narrow ? 74 : 64,
   };
 }
 
 function workBody(cat, sub, w) {
-  let h = `<p class="crumbs"><a href="${link("/" + cat.slug)}">${esc(cat.title)}</a><span aria-hidden="true">/</span><a href="${link(`/${cat.slug}/${sub.slug}`)}">${esc(sub.title)}</a></p>`;
+  let h = "";
   h += `<h2 class="work-title">${esc(w.title)}</h2>`;
   if (w.meta) h += `<p class="meta">${esc(w.meta)}</p>`;
   if (w.image) h += `<figure class="figure"><img src="${esc(w.image)}" alt="${esc(w.title)}" loading="lazy"></figure>`;
@@ -269,6 +261,34 @@ function a11yLinks(r) {
 
 let currentWorkKey = null;
 
+// a felső útvonalsáv: Bordás Máté › menü › almenü › mű (minden szint kattintható, az utolsó az aktuális)
+function crumbsFor(r) {
+  if (r.type === "home") return null;
+  const L = (text, path) => ({ text, href: link(path) });
+  const out = [L(site.name, "/")];
+  if (r.type === "notfound") return [...out, { text: "Nincs ilyen oldal" }];
+  if (r.sub && isShared(r.sub)) {
+    // közös alkategória: mindkét halmaz neve, a metszet jelével
+    out.push({ group: r.sub.in.map(catBySlug).filter(Boolean).map((c) => L(c.title, "/" + c.slug)) });
+  } else out.push(L(r.cat.title, "/" + r.cat.slug));
+  if (r.sub) out.push(L(r.sub.title, `/${r.cat.slug}/${r.sub.slug}`));
+  if (r.work) out.push(L(r.work.title, `/${r.cat.slug}/${r.sub.slug}/${r.work.slug}`));
+  delete out[out.length - 1].href; // az aktuális szint nem link
+  return out;
+}
+function renderCrumbs(r) {
+  const el = document.getElementById("crumbs");
+  const c = crumbsFor(r);
+  el.hidden = !c;
+  if (!c) { el.innerHTML = ""; return; }
+  const item = (x, i) => {
+    if (x.group) return `<span class="crumb crumb-group">${x.group.map((g) => `<a href="${esc(g.href)}">${esc(g.text)}</a>`).join('<span class="crumb-cap" aria-label="és">∩</span>')}</span>`;
+    const cls = i === 0 ? "crumb crumb-home" : x.href ? "crumb" : "crumb crumb-here";
+    return x.href ? `<a class="${cls}" href="${esc(x.href)}">${esc(x.text)}</a>` : `<span class="${cls}" aria-current="page">${esc(x.text)}</span>`;
+  };
+  el.innerHTML = c.map(item).join('<span class="crumb-sep" aria-hidden="true">›</span>');
+}
+
 function render() {
   if (PREVIEW && window.parent !== window) window.parent.postMessage({ type: "bm-path", path: currentPath() }, location.origin);
   const r = resolve(currentPath());
@@ -278,6 +298,7 @@ function render() {
   a11y.innerHTML = `<h1>${esc(sc.h1)}</h1><nav aria-label="Oldalak"><ul>${a11yLinks(r)}</ul></nav>`;
 
   sc.mono = r.type !== "home";
+  renderCrumbs(r);
   if (org) org.setScene(sc);
   else cells.innerHTML = `<div class="fallback"><p class="fb-name">${esc(site.name)}</p><ul>${a11yLinks(r)}</ul></div>`;
 

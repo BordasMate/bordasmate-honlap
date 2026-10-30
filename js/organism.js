@@ -450,6 +450,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
   // a halmazhártya vastagsága (px)
   const padPx = () => (W < 640 ? 26 : 44);
   let comp = null;
+  let topInset = 0;   // a felső útvonalsáv magassága (px)
 
   function ripple(x, y, s = 1) {
     ripples.push({ x, y, t: 0, s });
@@ -534,6 +535,17 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     SC.forEach((C, k) => {
       const mem = content.filter((s) => s.nucleus == null && (s.sets || []).length === 1 && s.sets[0] === k);
       const nuc = nuclei[k];
+      if (!nuc && mem.length) {
+        const order = [...mem].sort((a, b) => b.ax * b.ay - a.ax * a.ay);
+        const rAvg = order.reduce((a, s) => a + Math.sqrt(s.ax * s.ay), 0) / order.length;
+        order.forEach((s, i) => {
+          const a = i * 2.39996 + (scene.startAngle ?? 0);
+          const d = i === 0 ? 0 : rAvg * 1.62 * Math.sqrt(i);
+          s.anchor = { x: C.x + Math.cos(a) * d * 1.15, y: C.y + Math.sin(a) * d * 0.9 };
+          s.heavy = i === 0 && order.length > 2;
+        });
+        return;
+      }
       const many = SC.length > 1;
       const away = many ? Math.atan2(C.y - mid.y, C.x - mid.x) : scene.startAngle ?? -Math.PI / 2;
       const spread = many ? Math.min(Math.PI * 1.6, mem.length * 1.05) : Math.PI * 2;
@@ -559,6 +571,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     const first = bodies.size === 0;
     monoTarget = scene.mono ? 1 : 0;
     comp = scene.comp || null;
+    topInset = scene.topInset || 0;
     if (scene.monoTint) monoTintTarget = scene.monoTint;
     document.documentElement.style.setProperty("--mono-tint", `rgb(${(scene.monoTint || [1, 1, 1]).map((v) => Math.round(v * 255)).join(",")})`);
     nSets = Math.min(3, (scene.sets || []).length);
@@ -647,7 +660,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
         bodies.set(s.key, b);
       }
       Object.assign(b, {
-        kind: s.kind, tint: s.tint ?? 0, href: s.href || null, anchor: s.anchor || b.anchor0 || null, heavy: !!s.heavy, z: s.z ?? 0,
+        kind: s.kind, tint: s.tint ?? 0, href: s.href || null, anchor: s.anchor || b.anchor0 || null, heavy: !!s.heavy, z: s.z ?? 0, active: !!s.active,
         mask: (s.sets || []).reduce((m, k) => m | (1 << k), 0),
         tax: s.ax, tay: s.ay, dying: false, fs: s.fs, lines: s.lines, st: s.st,
       });
@@ -666,6 +679,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     }
     b.el.classList.remove("gone");
     b.el.dataset.kind = b.kind;
+    b.el.classList.toggle("active", !!b.active);
     if (b.href) b.el.setAttribute("href", b.href);
     b.el.style.fontSize = b.fs.toFixed(1) + "px";
     b.el.style.fontWeight = b.st.weight;
@@ -689,7 +703,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     const live = reduced ? 0 : 1;
     for (const b of list) {
       b.ax += (b.tax - b.ax) * 0.09; b.ay += (b.tay - b.ay) * 0.09;
-      b.hover += ((hoverKey === b.key ? 1 : 0) - b.hover) * 0.12;
+      b.hover += ((hoverKey === b.key ? 1 : b.active ? 0.65 : 0) - b.hover) * 0.12;
       b.rot += b.spin * dt * live;
       if (b.kind !== "drift" && b.el) {
         const op = Math.min(1, Math.max(0, (b.ax / (b.tax || b.ax || 1)) * 1.4 - 0.4));
@@ -744,7 +758,8 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       const m = L === "near" ? -b.ax * 0.55 : L === "far" ? -b.ax * 0.3 : 8;
       if (b.x - b.ax < m) fx += (m - (b.x - b.ax)) * 0.06;
       if (b.x + b.ax > W - m) fx -= (b.x + b.ax - (W - m)) * 0.06;
-      if (b.y - b.ay < m) fy += (m - (b.y - b.ay)) * 0.06;
+      const mTop = L === "c" ? Math.max(m, topInset) : m;
+      if (b.y - b.ay < mTop) fy += (mTop - (b.y - b.ay)) * 0.06;
       if (b.y + b.ay > H - m) fy -= (b.y + b.ay - (H - m)) * 0.06;
       if (L !== "c" && (b.x < -260 || b.x > W + 260 || b.y < -260 || b.y > H + 260)) { b.x = Math.random() * W; b.y = H + b.ax; }
       b.fx = fx; b.fy = fy;
@@ -891,7 +906,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       if (!b.el || b.sx === undefined) continue;
       // a felirat mindig a képernyőn belül marad
       b.sx = Math.max(18, Math.min(W - 18, b.sx));
-      b.sy = Math.max(16, Math.min(H - 16, b.sy));
+      b.sy = Math.max(16 + topInset * 0.8, Math.min(H - 16, b.sy));
       const tr = `translate(${b.sx.toFixed(1)}px, ${b.sy.toFixed(1)}px) translate(-50%, -50%)`;
       if (b._tr !== tr) { b._tr = tr; b.el.style.transform = tr; }
     }
