@@ -65,7 +65,7 @@ A `/admin` oldalt bárki megnyithatja, de jelszó nélkül semmit nem tud menten
 
 ## Tartalom
 
-A kezdő tartalom a `content.json` fájlban van (a 2025-ös szakmai
+A kezdő tartalom a `public/content.json` fájlban van (a 2025-ös szakmai
 publikációs jegyzékből és a 2026. augusztusi MTMT-listából). Amíg a
 szerkesztőben nincs mentés, a honlap ezt mutatja; az első mentés után a
 tárhelyen levő változatot. A **Letöltés** gombbal a teljes tartalom bármikor
@@ -80,8 +80,12 @@ Egy mű mezői: `title`, `slug`, `meta`, `about`, `poem`, `image`, `audio`,
 
 1. Hozz létre egy GitHub-tárolót, és töltsd fel a mappa teljes tartalmát.
 2. Netlify: **Add new site → Import an existing project → GitHub**, válaszd ki a tárolót.
-3. Build command: *üres*, Publish directory: `.` (a `netlify.toml` beállítja).
+3. Build command: *üres*, Publish directory: `public` (a `netlify.toml`
+   beállítja; ha a Netlify felületén más van megadva, töröld vagy írd át).
    A Netlify a `package.json` alapján telepíti a függvényhez kellő csomagot.
+
+**Fontos:** a honlapot GitHubról kell telepíteni. A Netlify „húzd ide”
+(drag & drop) feltöltése nem futtatja a szerkesztő mentéseit végző függvényt.
 4. Add meg az `ADMIN_PASSWORD` változót (lásd fent).
 
 A tartalom szerkesztéséhez ezután már nem kell a GitHubhoz nyúlni; csak a
@@ -90,14 +94,14 @@ honlap kódjának módosításakor.
 ## Felépítés
 
 ```
-index.html                  a honlap
-content.json                kezdő tartalom és beállítások
-admin/                      a szerkesztő
+public/                     a közzétett honlap
+  index.html                a honlap
+  content.json              kezdő tartalom és beállítások
+  admin/                    a szerkesztő
+  js/main.js                útvonalak, jelenetek, előnézet
+  js/organism.js            elrendezés, fizika, glitch, utófeldolgozás
+  js/lidar.js               a pontfelhős 3D renderelő
+  css/, fonts/              stílusok, saját tárhelyről betöltött betűk (OFL)
 netlify/functions/api.mjs   mentés, előzmények, média (Netlify Blobs)
-js/main.js                  útvonalak, jelenetek, előnézet
-js/organism.js              elrendezés, fizika, glitch, utófeldolgozás
-js/lidar.js                 a pontfelhős 3D renderelő
-css/                        stílusok, betűk
-fonts/                      saját tárhelyről betöltött betűk (OFL)
-netlify.toml, package.json  Netlify beállítás
+netlify.toml, package.json  Netlify beállítás (Node 22)
 ```

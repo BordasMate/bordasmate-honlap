@@ -1,7 +1,10 @@
-# Nincs build lépés: a gyökérkönyvtár tartalma közvetlenül kikerül.
+# Nincs build lépés: a public/ mappa tartalma közvetlenül kikerül,
+# a netlify/functions/ mappában levő függvényt a Netlify maga csomagolja.
 [build]
-  publish = "."
-  command = ""
+  publish = "public"
+
+[build.environment]
+  NODE_VERSION = "22"
 
 # Minden ismeretlen útvonalat (pl. /irodalom/vers) az index.html szolgál ki,
 # a megfelelő oldalt a böngészőben futó kód rajzolja ki.
