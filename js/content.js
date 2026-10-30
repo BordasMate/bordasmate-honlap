@@ -18,7 +18,11 @@
     links    – külső hivatkozások: [{ label: "...", href: "https://..." }]
     image    – kép elérési útja (pl. "/media/borito.jpg")
 
-  A kategóriák "palette" mezője a fém tónusát választja:
+  A kategóriák halmazokként jelennek meg; a több kategóriához tartozó
+  alkategóriák a fájl végén, a "shared" listában vannak (a halmazok metszete).
+
+  A kategóriák "palette" mezője a fém tónusát választja (az almenükben ez lesz
+  az egyszínű kép árnyalata is):
     "titan"     – ezüstös titán, szivárványos futtatással (a nyitóoldalé)
     "rez"       – vörösréz, izzó narancs fénnyel
     "kobalt"    – kékes kobalt, erős irizálással
@@ -144,18 +148,24 @@ export const site = {
             },
           ],
         },
+      ],
+    },
+  ],
+
+  // KÖZÖS ALKATEGÓRIÁK – több kategóriához is tartoznak, a halmazok metszetében
+  // jelennek meg. Az "in" mező sorolja fel, melyik kategóriák (slug) metszetébe kerül.
+  shared: [
+    {
+      title: "Zenés felolvasás",
+      slug: "zenes-felolvasas",
+      in: ["irodalom", "zene"],
+      works: [
         {
-          title: "Zenés felolvasás",
-          slug: "zenes-felolvasas",
-          works: [
-            {
-              title: "Felolvasás címe",
-              slug: "felolvasas-1",
-              meta: "helyszín, dátum",
-              about: ["Rövid leírás."],
-              // embed: "https://www.youtube.com/embed/...",
-            },
-          ],
+          title: "Felolvasás címe",
+          slug: "felolvasas-1",
+          meta: "helyszín, dátum",
+          about: ["Rövid leírás."],
+          // embed: "https://www.youtube.com/embed/...",
         },
       ],
     },

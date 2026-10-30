@@ -14,8 +14,16 @@ WebGL2-kép, két lépésben:
    film- és pixelszemcse, időnkénti glitch-villanások (szeletcsúszás,
    függőleges elkenődés, háromszög-mozaik, blokkeltolódás, pixelmozaik,
    képszakadás, invertált sávok, váltott soros kiesés) – ezek egy része a
-   teljes oldalt érinti; oldalváltáskor mindig teljes képes glitch fut. Az almenük fekete-fehérek,
-   a nyitóoldal színes.
+   teljes oldalt érinti; oldalváltáskor mindig teljes képes glitch fut.
+   A glitch kb. 10 másodpercenként jön, és mindig a látható képet torzítja
+   (nyújtja, tolja, mozaikolja), nem rajzol rá üres csíkokat.
+
+A kategóriák **halmazok**: egy-egy fémes amőbahártya fogja össze a
+kategória sejtjét és az alkategóriáit. A halmazok összeérnek, a közös
+alkategóriák (pl. *Zenés felolvasás*) a metszetükben, a két halmaz között
+ülnek. A nyitóoldal színes, az almenük **egyszínűek, de színesek**: az
+Irodalom rézvörös, a Zene kobaltkék, a közös alkategóriák lila árnyalatban
+jelennek meg.
 
 WebGL2 nélküli böngészőben egyszerű, sötét linklista jelenik meg.
 Ha a gép lassú, a felbontás magától csökken; „csökkentett mozgás”
@@ -28,6 +36,11 @@ milyen mezői lehetnek egy műnek (`title`, `slug`, `meta`, `about`, `poem`,
 `embed`, `audio`, `links`, `image`). Új kategória, alkategória vagy mű:
 másolj le egy meglévő blokkot és írd át. A nyitóoldal és az aloldalak
 elrendezése automatikusan igazodik az elemek számához.
+
+Több kategóriához tartozó alkategória (a halmazok metszete) a fájl végén, a
+`shared` listában van; az `in` mező sorolja fel, melyik kategóriákhoz
+tartozik (pl. `in: ["irodalom", "zene"]`). Mindkét kategória címe alatt
+elérhető (`/irodalom/zenes-felolvasas` és `/zene/zenes-felolvasas`).
 
 Képek, hangfájlok: tedd egy `media/` mappába, és hivatkozz rájuk így:
 `image: "/media/borito.jpg"`.
@@ -69,7 +82,7 @@ netlify.toml        Netlify beállítás
 
 Fémtónusok (`palette` mező, a nyitóoldalon látszanak): `titan`, `rez`,
 `kobalt`, `zoldarany`. A színek a `js/organism.js` elején hangolhatók
-(`TINT_DATA`, `GLOW_DATA`, `ENV_HOME`, `DEEP_HOME`); a glitch gyakorisága a
-`G.next` sorban (jelenleg 1,6–6,2 másodpercenként), a teljes képes glitch
-aránya a `burst` függvény elején (28%). A szemcse és a rozsda erőssége a
+(`TINT_DATA`, `GLOW_DATA`, `ENV_HOME`, `DEEP_HOME`). A glitch gyakorisága,
+hossza és a teljes képes glitch aránya a `js/organism.js` legelején, a
+`GLITCH` beállításblokkban állítható. A szemcse és a rozsda erőssége a
 `uGrain` és `uRough` értékkel állítható (0 = nincs, 1 = alap).

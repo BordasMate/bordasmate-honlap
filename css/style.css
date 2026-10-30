@@ -71,9 +71,9 @@ a.cell-label:focus-visible { box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); }
 }
 html.mono .cell-label.glitch { animation-name: label-glitch-mono; }
 @keyframes label-glitch-mono {
-  0%   { clip-path: inset(0 0 52% 0); text-shadow: -3px 0 rgba(255, 255, 255, .55), 3px 0 rgba(120, 120, 120, .7), 0 0 12px #000; }
-  50%  { clip-path: inset(38% 0 0 0); text-shadow: 4px 0 rgba(255, 255, 255, .55), -4px 0 rgba(120, 120, 120, .7), 0 0 12px #000; }
-  100% { clip-path: inset(0 0 0 0);  text-shadow: -2px 0 rgba(255, 255, 255, .4), 2px 0 rgba(120, 120, 120, .5), 0 0 12px #000; }
+  0%   { clip-path: inset(0 0 52% 0); text-shadow: -3px 0 rgba(255, 255, 255, .55), 3px 0 var(--mono-tint, #888), 0 0 12px #000; }
+  50%  { clip-path: inset(38% 0 0 0); text-shadow: 4px 0 rgba(255, 255, 255, .55), -4px 0 var(--mono-tint, #888), 0 0 12px #000; }
+  100% { clip-path: inset(0 0 0 0);  text-shadow: -2px 0 rgba(255, 255, 255, .4), 2px 0 var(--mono-tint, #888), 0 0 12px #000; }
 }
 @media (prefers-reduced-motion: reduce) { .cell-label.glitch { animation: none; translate: none; } }
 
