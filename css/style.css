@@ -94,6 +94,22 @@ html.mono .cell-label.glitch { animation-name: label-glitch-mono; }
   outline: none;
 }
 #panel.show { opacity: 1; pointer-events: auto; }
+#panel {
+  background: rgba(4, 5, 8, 0.86);
+  border: 1px solid color-mix(in srgb, var(--mono-tint, #9aa3b5) 45%, transparent);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .6), 0 20px 60px rgba(0, 0, 0, .6), inset 0 0 40px rgba(0, 0, 0, .5);
+  border-radius: 4px;
+}
+#panel::before, #panel::after {
+  content: "";
+  position: sticky;
+  display: block;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+#panel::before { top: -1px; margin: calc(-1 * clamp(14px, 3vw, 34px)) 0 0 calc(-1 * clamp(16px, 3vw, 40px)); border-left: 2px solid var(--mono-tint, #cfd3dc); border-top: 2px solid var(--mono-tint, #cfd3dc); }
+#panel::after { position: absolute; right: 6px; bottom: 6px; border-right: 2px solid var(--mono-tint, #cfd3dc); border-bottom: 2px solid var(--mono-tint, #cfd3dc); }
 
 .crumbs {
   display: flex;

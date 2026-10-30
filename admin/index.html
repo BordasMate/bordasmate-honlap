@@ -20,9 +20,10 @@
       <button id="btn-glitch" class="ghost" title="Egy teljes képes glitch az előnézetben">Glitch próba</button>
       <button id="btn-download" class="ghost" title="A tartalom letöltése content.json fájlként">Letöltés</button>
       <label class="ghost file-btn" title="Korábban letöltött content.json betöltése">Betöltés<input id="file-import" type="file" accept="application/json,.json" hidden></label>
-      <button id="btn-revert" class="ghost" title="A közzétett változat visszatöltése">Elvetés</button>
-      <button id="btn-gh" class="ghost" title="GitHub-kapcsolat beállítása">GitHub</button>
-      <button id="btn-save" class="primary">Közzététel</button>
+      <button id="btn-revert" class="ghost" title="A honlapon levő változat visszatöltése">Elvetés</button>
+      <button id="btn-history" class="ghost" title="Korábbi mentések">Előzmények</button>
+      <button id="btn-logout" class="ghost" title="Kilépés (a jelszó elfelejtése ezen a gépen)">Kilépés</button>
+      <button id="btn-save" class="primary" title="Mentés a honlapra (Ctrl+S)">Mentés</button>
     </div>
   </header>
 
@@ -42,36 +43,33 @@
       <div class="preview-bar">
         <span class="preview-label">Élő előnézet</span>
         <code id="preview-path">/</code>
-        <a id="preview-open" href="/" target="_blank" rel="noopener" class="preview-link">közzétett oldal ↗</a>
+        <a id="preview-open" href="/" target="_blank" rel="noopener" class="preview-link">a honlap ↗</a>
       </div>
       <iframe id="preview" src="/?preview" title="A honlap élő előnézete"></iframe>
     </section>
   </main>
 
-  <dialog id="gh-dialog">
+  <dialog id="login-dialog">
     <form method="dialog" class="dialog">
-      <h2>GitHub-kapcsolat</h2>
-      <p class="hint">A Közzététel gomb a <code>content.json</code> fájlt írja a GitHub-tárolóba; a Netlify ezt észleli, és kb. egy percen belül frissíti a honlapot.</p>
-      <label>Tároló <input name="repo" placeholder="felhasználónév/tárolónév" autocomplete="off"></label>
-      <label>Ág <input name="branch" placeholder="main" autocomplete="off"></label>
-      <label>Hozzáférési token
-        <input name="token" type="password" placeholder="github_pat_…" autocomplete="off">
-      </label>
+      <h2>Belépés</h2>
+      <p class="hint">A mentéshez add meg a szerkesztő jelszavát (a Netlify-on beállított <code>ADMIN_PASSWORD</code>).</p>
+      <p id="login-msg" class="hint warn" hidden></p>
+      <label>Jelszó <input name="pass" type="password" autocomplete="current-password" required></label>
       <label class="check"><input name="remember" type="checkbox"> Megjegyzés ezen a gépen</label>
-      <details class="hint">
-        <summary>Hogyan kapok tokent?</summary>
-        <ol>
-          <li>GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token.</li>
-          <li>Repository access: <b>Only select repositories</b>, és válaszd ki a honlap tárolóját.</li>
-          <li>Permissions → Repository permissions → <b>Contents: Read and write</b>.</li>
-          <li>Másold ide a kapott tokent. Csak ebben a böngészőben tárolódik, a honlapra nem kerül fel.</li>
-        </ol>
-      </details>
       <div class="dialog-actions">
-        <button value="cancel" class="ghost">Mégse</button>
-        <button value="ok" class="primary">Mentés</button>
+        <button value="cancel" class="ghost" formnovalidate>Mégse</button>
+        <button value="ok" class="primary">Belépés</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="history-dialog">
+    <div class="dialog">
+      <h2>Korábbi mentések</h2>
+      <p class="hint">Az utolsó 40 mentés. Egy változat betöltése után a <b>Mentés</b> gombbal teheted újra élővé.</p>
+      <div id="history-list" class="list"></div>
+      <div class="dialog-actions"><button class="ghost" onclick="this.closest('dialog').close()">Bezárás</button></div>
+    </div>
   </dialog>
 
   <div id="toast" class="toast" role="status" hidden></div>

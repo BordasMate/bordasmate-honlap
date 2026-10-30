@@ -60,16 +60,20 @@
    "respectReducedMotion": true
   },
   "texture": {
-   "grain": 1,
-   "rust": 0.8,
-   "metal": 0.55,
-   "wood": 0.35,
-   "stone": 0.4,
-   "clay": 0.3
+   "grain": 1
   },
   "fonts": {
    "display": "Syne",
    "body": "Literata"
+  },
+  "lidar": {
+   "density": 1,
+   "pointSize": 1,
+   "tintMix": 0.3,
+   "relief": 1,
+   "pitch": 50,
+   "yaw": -22,
+   "sway": 1
   }
  },
  "categories": [

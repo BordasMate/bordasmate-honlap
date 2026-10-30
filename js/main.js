@@ -10,6 +10,11 @@ async function loadContent() {
   if (PREVIEW) {
     try { const d = localStorage.getItem("bm-draft"); if (d) return JSON.parse(d); } catch {}
   }
+  // a szerkesztőben elmentett tartalom (Netlify Blobs); ha még nincs, a kezdő content.json
+  try {
+    const r = await fetch("/api/content", { cache: "no-store" });
+    if (r.ok && (r.headers.get("content-type") || "").includes("json")) return await r.json();
+  } catch {}
   const r = await fetch("/content.json", { cache: "no-cache" });
   return r.json();
 }
@@ -278,7 +283,7 @@ function render() {
 
   // szövegpanel
   if (sc.panel) {
-    const p = sc.panel, inset = 30;
+    const p = sc.panel, inset = 14;
     Object.assign(panelEl.style, {
       left: p.x - p.hw + inset + "px", top: p.y - p.hh + inset + "px",
       width: p.hw * 2 - inset * 2 + "px", height: p.hh * 2 - inset * 2 + "px",

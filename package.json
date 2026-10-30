@@ -1,0 +1,9 @@
+{
+  "name": "bordasmate-honlap",
+  "private": true,
+  "type": "module",
+  "description": "Bordás Máté alkotói honlapja – statikus oldal + egy Netlify Function a szerkesztő mentéseihez",
+  "dependencies": {
+    "@netlify/blobs": "11.1.5"
+  }
+}

@@ -1,9 +1,10 @@
-// A honlap szerkesztője: a content.json-t szerkeszti, élő előnézettel,
-// és a GitHub API-n keresztül teszi közzé (a Netlify ezután újraépíti az oldalt).
+// A honlap szerkesztője: a tartalmat szerkeszti élő előnézettel, és egy jelszóval védett
+// Netlify Functionön keresztül közvetlenül a honlap tárhelyére (Netlify Blobs) menti.
+// A mentés azonnal él, újraépítés és GitHub nélkül.
 
 const LS_DRAFT = "bm-draft";
-const LS_GH = "bm-github";
-const SS_TOKEN = "bm-github-token";
+const LS_PASS = "bm-admin-pass";
+const SS_PASS = "bm-admin-pass";
 
 const FONTS = {
   display: ["Syne", "Unbounded", "Bricolage Grotesque", "Space Grotesk", "Fraunces"],
@@ -21,6 +22,7 @@ const DEFAULTS = {
   home: { light: "#fab8ff", depth: "#b85ce6", crystalA: "#ff33c7", crystalB: "#26d9ff" },
   glitch: { enabled: true, minGap: 9000, maxGap: 11000, burstCount: 3, fullChance: 0.5, minLength: 140, maxLength: 420, intensity: 1, onNavigate: true, navigateLength: 420, respectReducedMotion: true },
   texture: { grain: 1, rust: 0.8, metal: 0.55, wood: 0.35, stone: 0.4, clay: 0.3 },
+  lidar: { density: 1, pointSize: 1, tintMix: 0.3, relief: 1, pitch: 50, yaw: -22, sway: 1 },
   fonts: { display: "Syne", body: "Literata" },
 };
 
@@ -55,6 +57,7 @@ function ensureSettings() {
   st.home = { ...DEFAULTS.home, ...(st.home || {}) };
   st.glitch = { ...DEFAULTS.glitch, ...(st.glitch || {}) };
   st.texture = { ...DEFAULTS.texture, ...(st.texture || {}) };
+  st.lidar = { ...DEFAULTS.lidar, ...(st.lidar || {}) };
   st.fonts = { ...DEFAULTS.fonts, ...(st.fonts || {}) };
   data.site = data.site || { name: "", description: "", palette: "titan", contact: { email: "", links: [] } };
   data.site.contact = data.site.contact || { email: "", links: [] };
@@ -147,7 +150,7 @@ function renderTree() {
   const t = $("#tree");
   t.innerHTML = "";
   if (tab === "look") {
-    const items = [["look-colors", "Színek"], ["look-fonts", "Betűtípus"], ["look-texture", "Anyagok és textúra"], ["look-glitch", "Glitch"]];
+    const items = [["look-colors", "Színek"], ["look-fonts", "Betűtípus"], ["look-texture", "Pontfelhő és kamera"], ["look-glitch", "Glitch"]];
     t.append(h("div.tree-section", {}, h("div.tree-head", {}, "Megjelenés"),
       items.map(([k, label]) => h("button.node" + (sel.kind === k ? ".sel" : ""), { onclick: () => select({ kind: k }) }, label))));
     return;
@@ -318,7 +321,8 @@ function viewIntro() {
     head("Szerkesztő", data.site.name || "Honlap"),
     group("Hogyan működik?",
       h("p.note", { html: "Bal oldalt a honlap szerkezete: <b>kategóriák</b> (a nagy halmazok), bennük <b>alkategóriák</b>, azokban a <b>művek</b>. A több kategóriához tartozó alkategóriák a <b>Közös alkategóriák</b> között vannak – ezek a halmazok metszetében jelennek meg." }),
-      h("p.note", { html: "Minden változás azonnal látszik a jobb oldali <b>élő előnézetben</b>, és ebben a böngészőben piszkozatként megmarad. A honlapon akkor jelenik meg, amikor a <b>Közzététel</b> gombra kattintasz (ehhez egyszer be kell állítani a GitHub-kapcsolatot)." }),
+      h("p.note", { html: "Minden változás azonnal látszik a jobb oldali <b>élő előnézetben</b>, és ebben a böngészőben piszkozatként megmarad. A honlapon akkor jelenik meg, amikor a <b>Mentés</b> gombra kattintasz – onnantól mindenkinek így látszik, és így is marad." }),
+      h("p.note", { html: "Az <b>Előzmények</b> gombbal bármelyik korábbi mentés visszahozható." }),
       h("p.note", { html: "A <b>Megjelenés</b> fülön a színek, a betűtípus, az anyagok (fém, fa, kő, agyag) és a glitch állítható; az <b>Oldal</b> fülön a név és az elérhetőség." }),
     ),
   ];
@@ -455,13 +459,13 @@ function mediaField(label, value, set, accept, placeholder) {
     try {
       const path = await uploadMedia(f);
       input.value = path; set(path);
-      toast(`Feltöltve: <code>${esc(path)}</code>. A honlapon a következő közzététel után látszik.`, "ok");
+      toast(`Feltöltve. A honlapon a következő mentés után jelenik meg.`, "ok");
     } catch (err) { toast(esc(err.message), "err", 7000); }
     e.target.value = "";
   } });
   return h("label.field", {}, h("span", {}, label),
-    h("div.slug-wrap", {}, input, h("button.small", { type: "button", onclick: () => file.click(), title: "Fájl feltöltése a GitHub-tárolóba" }, "Feltöltés"), file),
-    h("small", {}, "Feltöltéskor a fájl a tároló media/ mappájába kerül (GitHub-kapcsolat szükséges)."));
+    h("div.slug-wrap", {}, input, h("button.small", { type: "button", onclick: () => file.click(), title: "Fájl feltöltése a honlapra" }, "Feltöltés"), file),
+    h("small", {}, "Kép, hang, videó vagy PDF, legfeljebb 5 MB. Nagyobb hanghoz, videóhoz használj beágyazott lejátszót (SoundCloud, Bandcamp, YouTube)."));
 }
 
 function linksEditor(w) {
@@ -595,19 +599,23 @@ function viewFonts() {
 }
 
 function viewTexture() {
-  const t = data.settings.texture;
-  const r = (label, key, min, max, help) => rangeField(label, t[key], min, max, 0.01, (v) => { t[key] = v; changed({ tree: false }); }, { help, fmt: (v) => v.toFixed(2) });
+  const L = data.settings.lidar, t = data.settings.texture;
+  const r = (obj, label, key, min, max, step, help, fmt = (v) => v.toFixed(2)) =>
+    rangeField(label, obj[key], min, max, step, (v) => { obj[key] = v; changed({ tree: false }); }, { help, fmt });
   return [
-    head("Megjelenés", "Anyagok és textúra"),
-    group("Anyagok aránya",
-      h("p.note", {}, "A sejtek felülete foltokban keveri ezeket az anyagokat. Ha egy anyagot nullára veszel, nem jelenik meg; ha csak egyet hagysz meg, minden sejt abból lesz."),
-      r("Fém (acél, réz, palettaszín)", "metal", 0, 1),
-      r("Fa", "wood", 0, 1),
-      r("Mészkő", "stone", 0, 1),
-      r("Agyag", "clay", 0, 1)),
+    head("Megjelenés", "Pontfelhő és kamera"),
+    group("Pontfelhő",
+      h("p.note", {}, "A honlap LiDAR-szerű pontfelhőként jelenik meg: a pontok színe a magasságot mutatja (alul lila–kék, felül sárga–vörös), mint egy lézerszkennelt tájon."),
+      r(L, "Pontsűrűség", "density", 0.3, 1, 0.01, "Kevesebb pont = gyorsabb, levegősebb kép."),
+      r(L, "Pontméret", "pointSize", 0.5, 2, 0.01),
+      r(L, "Kategóriaszín keverése", "tintMix", 0, 1, 0.01, "0 = tisztán magasság szerinti szín, 1 = a kategória fémtónusa."),
+      r(L, "Domborzat és kupolák magassága", "relief", 0.3, 2, 0.01)),
+    group("Kamera",
+      r(L, "Dőlésszög (felülnézet felé nő)", "pitch", 30, 80, 1, "", (v) => Math.round(v) + "°"),
+      r(L, "Elforgatás", "yaw", -45, 45, 1, "", (v) => Math.round(v) + "°"),
+      r(L, "Lassú kameramozgás", "sway", 0, 2, 0.01, "0 = álló kamera.")),
     group("Felület",
-      r("Szemcse (film- és pixelszemcse)", "grain", 0, 2, "0 = tiszta kép, 1 = alap, 2 = erős szemcse."),
-      r("Rozsda, homokfújás a fémen", "rust", 0, 2)),
+      r(t, "Szemcse (film- és pixelszemcse)", "grain", 0, 2, 0.01, "0 = tiszta kép, 1 = alap, 2 = erős szemcse.")),
   ];
 }
 
@@ -636,71 +644,65 @@ function viewGlitch() {
   ];
 }
 
-/* ---------------- GitHub ---------------- */
+/* ---------------- mentés a honlapra (Netlify Function) ---------------- */
 
-function ghConfig() {
-  let c = {};
-  try { c = JSON.parse(localStorage.getItem(LS_GH) || "{}"); } catch {}
-  c.token = c.token || sessionStorage.getItem(SS_TOKEN) || "";
-  return { repo: c.repo || "", branch: c.branch || "main", token: c.token, remember: !!c.remember };
+function getPass() { return sessionStorage.getItem(SS_PASS) || localStorage.getItem(LS_PASS) || ""; }
+function setPass(p, remember) {
+  sessionStorage.setItem(SS_PASS, p);
+  if (remember) localStorage.setItem(LS_PASS, p); else localStorage.removeItem(LS_PASS);
 }
-function ghSaveConfig({ repo, branch, token, remember }) {
-  const keep = { repo: repo.trim().replace(/^https:\/\/github\.com\//, "").replace(/\.git$/, "").replace(/\/$/, ""), branch: (branch || "main").trim(), remember };
-  if (remember) keep.token = token.trim(); else sessionStorage.setItem(SS_TOKEN, token.trim());
-  if (!remember) localStorage.removeItem(LS_GH);
-  localStorage.setItem(LS_GH, JSON.stringify(keep));
+function forgetPass() { sessionStorage.removeItem(SS_PASS); localStorage.removeItem(LS_PASS); }
+
+async function api(path, { method = "GET", body, type } = {}) {
+  const headers = { authorization: "Bearer " + getPass() };
+  if (type) headers["content-type"] = type;
+  let r;
+  try { r = await fetch("/api/" + path, { method, headers, body, cache: "no-store" }); }
+  catch { throw new Error("Nem érem el a honlap szerverét. Ellenőrizd az internetkapcsolatot."); }
+  const ct = r.headers.get("content-type") || "";
+  if (!ct.includes("json")) throw new Error(r.status === 404
+    ? "A mentés csak a Netlify-on futó honlapon működik (helyi gépen nem). A Letöltés gombbal addig fájlba mentheted a munkát."
+    : `Szerverhiba (${r.status}).`);
+  const j = await r.json();
+  if (r.status === 401) { forgetPass(); }
+  if (!r.ok) { const e = new Error(j.error || `Hiba (${r.status}).`); e.status = r.status; throw e; }
+  return j;
 }
-function openGhDialog() {
+
+function openLogin(message = "") {
   return new Promise((resolve) => {
-    const d = $("#gh-dialog");
+    const d = $("#login-dialog");
     const f = d.querySelector("form");
-    const c = ghConfig();
-    f.repo.value = c.repo; f.branch.value = c.branch; f.token.value = c.token; f.remember.checked = c.remember;
-    d.onclose = () => {
-      if (d.returnValue === "ok") { ghSaveConfig({ repo: f.repo.value, branch: f.branch.value, token: f.token.value, remember: f.remember.checked }); resolve(true); }
-      else resolve(false);
+    f.pass.value = "";
+    $("#login-msg").textContent = message;
+    $("#login-msg").hidden = !message;
+    d.onclose = async () => {
+      if (d.returnValue !== "ok" || !f.pass.value) return resolve(false);
+      setPass(f.pass.value, f.remember.checked);
+      try { await api("login", { method: "POST" }); resolve(true); }
+      catch (err) { resolve(await openLogin(err.message)); }
     };
     d.showModal();
+    f.pass.focus();
   });
 }
-function b64(str) {
-  const bytes = new TextEncoder().encode(str);
-  let bin = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(bin);
+async function ensureLogin() {
+  if (getPass()) return true;
+  return openLogin();
 }
-async function ghPut(path, contentB64, message) {
-  let c = ghConfig();
-  if (!c.repo || !c.token) {
-    if (!(await openGhDialog())) throw new Error("A közzétételhez állítsd be a GitHub-kapcsolatot.");
-    c = ghConfig();
+async function withLogin(fn) {
+  if (!(await ensureLogin())) throw new Error("A mentéshez be kell lépni.");
+  try { return await fn(); }
+  catch (err) {
+    if (err.status === 401 && (await openLogin("Hibás jelszó. Próbáld újra."))) return fn();
+    throw err;
   }
-  const api = `https://api.github.com/repos/${c.repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`;
-  const headers = { Authorization: `Bearer ${c.token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
-  const explain = (st) => ({
-    401: "A token érvénytelen vagy lejárt.",
-    403: "A tokennek nincs írási joga ehhez a tárolóhoz (Contents: Read and write kell).",
-    404: "Nem található a tároló vagy az ág. Ellenőrizd a nevet (felhasználónév/tárolónév) és az ágat.",
-    409: "Ütközés: közben valaki más módosította a fájlt. Próbáld újra.",
-    422: "A GitHub elutasította a kérést (pl. hibás ág).",
-  }[st] || `GitHub-hiba (${st}).`);
-  let sha;
-  const g = await fetch(`${api}?ref=${encodeURIComponent(c.branch)}`, { headers, cache: "no-store" });
-  if (g.ok) sha = (await g.json()).sha;
-  else if (g.status !== 404) throw new Error(explain(g.status));
-  const p = await fetch(api, { method: "PUT", headers, body: JSON.stringify({ message, content: contentB64, branch: c.branch, ...(sha ? { sha } : {}) }) });
-  if (!p.ok) throw new Error(explain(p.status));
-  return p.json();
 }
+
 async function uploadMedia(file) {
-  if (file.size > 20 * 1024 * 1024) throw new Error("A fájl túl nagy (legfeljebb 20 MB).");
-  const dot = file.name.lastIndexOf(".");
-  const name = slugify(dot > 0 ? file.name.slice(0, dot) : file.name) + (dot > 0 ? file.name.slice(dot).toLowerCase() : "");
-  const buf = new Uint8Array(await file.arrayBuffer());
-  let bin = "";
-  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-  await ghPut(`media/${name}`, btoa(bin), `Média feltöltése: ${name}`);
-  return `/media/${name}`;
+  if (file.size > 5.5 * 1024 * 1024) throw new Error("A fájl túl nagy (legfeljebb 5 MB).");
+  const r = await withLogin(() => api("media?name=" + encodeURIComponent(file.name), { method: "POST", body: file, type: file.type || "application/octet-stream" }));
+  return r.url;
 }
 
 function validate() {
@@ -721,37 +723,70 @@ function validate() {
 
 async function publish() {
   const problems = validate();
-  if (problems.length) { toast("Javítsd a közzététel előtt:<br>" + problems.slice(0, 5).map(esc).join("<br>"), "err", 8000); return; }
+  if (problems.length) { toast("Javítsd a mentés előtt:<br>" + problems.slice(0, 5).map(esc).join("<br>"), "err", 8000); return; }
   const btn = $("#btn-save");
-  btn.disabled = true; btn.textContent = "Közzététel…";
+  btn.disabled = true; btn.textContent = "Mentés…";
   try {
-    const res = await ghPut("content.json", b64(JSON.stringify(data, null, 1) + "\n"), "Tartalom frissítése a szerkesztőből");
+    const res = await withLogin(() => api("content", { method: "PUT", body: JSON.stringify(data), type: "application/json" }));
     published = clone(data);
     changed({ tree: false });
-    const url = res?.commit?.html_url;
-    toast(`Közzétéve. A Netlify kb. egy percen belül frissíti a honlapot.${url ? ` <a href="${esc(url)}" target="_blank" rel="noopener">Módosítás megtekintése ↗</a>` : ""}`, "ok", 9000);
+    const at = new Date(res.savedAt).toLocaleTimeString("hu-HU", { hour: "2-digit", minute: "2-digit" });
+    toast(`Elmentve (${at}). A honlapon már így látszik.`, "ok", 6000);
   } catch (err) {
-    toast(esc(err.message), "err", 8000);
+    toast(esc(err.message), "err", 9000);
   } finally {
-    btn.disabled = false; btn.textContent = "Közzététel";
+    btn.disabled = false; btn.textContent = "Mentés";
+  }
+}
+
+async function openHistory() {
+  const d = $("#history-dialog");
+  const list = $("#history-list");
+  list.innerHTML = "<p class='hint'>Betöltés…</p>";
+  d.showModal();
+  try {
+    const { items } = await withLogin(() => api("history"));
+    list.innerHTML = "";
+    if (!items.length) { list.append(h("p.hint", {}, "Még nincs korábbi mentés.")); return; }
+    items.forEach((it) => {
+      const when = new Date(it.savedAt).toLocaleString("hu-HU", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      list.append(h("div.list-item", {},
+        h("div.fields", {}, h("b", {}, when)),
+        h("div.ops", {}, h("button.small", { onclick: async () => {
+          try {
+            const old = await withLogin(() => api("history/" + encodeURIComponent(it.key)));
+            data = old; ensureSettings(); sel = { kind: "intro" };
+            changed(); renderEditor();
+            d.close();
+            toast(`A ${esc(when)}-i változat betöltve. Ha így szeretnéd, kattints a <b>Mentés</b> gombra.`, "ok", 8000);
+          } catch (err) { toast(esc(err.message), "err"); }
+        } }, "Betöltés"))));
+    });
+  } catch (err) {
+    list.innerHTML = "";
+    list.append(h("p.hint.warn", {}, err.message));
   }
 }
 
 /* ---------------- indulás ---------------- */
 
 async function init() {
+  // a honlapon elmentett tartalom; ha még nincs mentés, a kezdő content.json
+  published = null;
   try {
-    published = await (await fetch("/content.json", { cache: "no-store" })).json();
-  } catch {
-    published = { site: { name: "" }, categories: [], shared: [] };
-    toast("A content.json nem tölthető be.", "err");
+    const r = await fetch("/api/content", { cache: "no-store" });
+    if (r.ok && (r.headers.get("content-type") || "").includes("json")) published = await r.json();
+  } catch {}
+  if (!published) {
+    try { published = await (await fetch("/content.json", { cache: "no-store" })).json(); }
+    catch { published = { site: { name: "" }, categories: [], shared: [] }; toast("A tartalom nem tölthető be.", "err"); }
   }
   let draft = null;
   try { draft = JSON.parse(localStorage.getItem(LS_DRAFT) || "null"); } catch {}
   data = clone(draft && Array.isArray(draft.categories) ? draft : published);
   ensureSettings();
   const pub = clone(published); data_ensure(pub); published = pub;
-  if (draft && JSON.stringify(data) !== JSON.stringify(published)) toast("A legutóbbi mentetlen piszkozatot töltöttem be. Az <b>Elvetés</b> gomb visszaállítja a közzétett változatot.", "", 6500);
+  if (draft && JSON.stringify(data) !== JSON.stringify(published)) toast("A legutóbbi mentetlen piszkozatot töltöttem be. Az <b>Elvetés</b> gomb visszaállítja a honlapon levő változatot.", "", 6500);
   try { localStorage.setItem(LS_DRAFT, JSON.stringify(data)); } catch {}
   $("#dirty").hidden = JSON.stringify(data) === JSON.stringify(published);
   data.categories.forEach((_, i) => openNodes.add("c" + i));
@@ -768,7 +803,8 @@ document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () 
   select(tab === "look" ? { kind: "look-colors" } : tab === "site" ? { kind: "site" } : { kind: "intro" });
 }));
 $("#btn-save").addEventListener("click", publish);
-$("#btn-gh").addEventListener("click", () => openGhDialog().then((ok) => ok && toast("GitHub-kapcsolat elmentve.", "ok")));
+$("#btn-history").addEventListener("click", openHistory);
+$("#btn-logout").addEventListener("click", () => { forgetPass(); toast("Kiléptél. A következő mentésnél újra kéri a jelszót.", "ok"); });
 $("#btn-glitch").addEventListener("click", () => postPreview({ type: "bm-glitch" }));
 $("#btn-download").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(data, null, 1) + "\n"], { type: "application/json" });
@@ -784,12 +820,12 @@ $("#file-import").addEventListener("change", async (e) => {
     if (!Array.isArray(obj.categories)) throw new Error("Ez nem a honlap content.json fájlja.");
     data = obj; ensureSettings(); sel = { kind: "intro" };
     changed(); renderEditor();
-    toast("Betöltve. A honlapon a Közzététel után jelenik meg.", "ok");
+    toast("Betöltve. A honlapon a Mentés után jelenik meg.", "ok");
   } catch (err) { toast(esc(err.message || "Hibás fájl."), "err"); }
   e.target.value = "";
 });
 $("#btn-revert").addEventListener("click", () => {
-  if (!confirm("Elveted a mentetlen változásokat, és visszatöltöd a közzétett változatot?")) return;
+  if (!confirm("Elveted a mentetlen változásokat, és visszatöltöd a honlapon levő változatot?")) return;
   data = clone(published); ensureSettings(); sel = { kind: "intro" };
   changed(); renderEditor();
 });
@@ -797,7 +833,7 @@ document.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); publish(); }
 });
 window.addEventListener("beforeunload", (e) => {
-  // a piszkozat úgyis megmarad, de figyelmeztetünk, ha nincs közzétéve
+  // a piszkozat úgyis megmarad, de figyelmeztetünk, ha nincs elmentve
   if (data && published && JSON.stringify(data) !== JSON.stringify(published)) { e.preventDefault(); e.returnValue = ""; }
 });
 

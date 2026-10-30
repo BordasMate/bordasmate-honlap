@@ -1,9 +1,20 @@
 # Nincs build lépés: a gyökérkönyvtár tartalma közvetlenül kikerül.
 [build]
   publish = "."
+  command = ""
 
 # Minden ismeretlen útvonalat (pl. /irodalom/vers) az index.html szolgál ki,
 # a megfelelő oldalt a böngészőben futó kód rajzolja ki.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# a szerkesztő mentései (Netlify Function + Blobs)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
 # a szerkesztő (admin felület) saját oldala
 [[redirects]]
   from = "/admin/*"
