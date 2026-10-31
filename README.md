@@ -51,7 +51,7 @@ A honlap címe után írd: **/admin**.
   böngészőben megmaradnak; a **Mentés** gomb (vagy Ctrl+S) teszi őket a
   honlapra – onnantól mindenkinek így látszik, és így is marad.
 - **Előzmények:** az utolsó 40 mentés bármelyike visszatölthető.
-- Kép, hang, videó vagy PDF feltölthető (legfeljebb 5 MB); a honlap
+- Kép, hang, videó vagy PDF feltölthető (legfeljebb 5 MB; folyóiratszám-PDF ennél nagyobb is, lásd lent); a honlap
   tárhelyére kerül.
 
 ### Beállítás (egyszer)
@@ -92,6 +92,22 @@ keretben futnak, a „Teljes képernyő” gombbal kinagyíthatók (Esc: vissza)
 A böngészők csak kattintás után engednek hangot, ezért a programok egy
 kattintással indulnak.
 
+## Folyóiratszámok – PDF-olvasó (pl. ROST)
+
+Egy műhöz lapszámok tartozhatnak (`issues`: `title`, `note`, `pdf`, `cover`;
+a lista címe: `issuesTitle`). A honlapon borítókként jelennek meg, és
+kattintásra a beépített olvasóban nyílnak meg: lapozás nyilakkal, billentyűvel
+vagy húzással, két oldal egymás mellett (a borító külön), nagyítás, ugrás
+oldalszámra, kijelölhető szöveg, letöltés. A link megosztható:
+`…/rost?szam=3&oldal=12`.
+
+A szerkesztőben a műnél: **Lapszámok (PDF-olvasó) → + PDF-ek feltöltése**
+(egyszerre több fájl is). A PDF-ek 3 MB-os darabokban kerülnek a Netlify
+tárhelyére, így nagy számok is feltölthetők (legfeljebb 400 MB); a borító a
+PDF első oldalából készül. Olvasáskor csak a megnyitott oldalakhoz szükséges
+részek töltődnek le. Az olvasó a PDF.js-t használja (`public/vendor/pdfjs`,
+Apache-licenc).
+
 ## Közzététel GitHubon és Netlify-on (első alkalommal)
 
 1. Hozz létre egy GitHub-tárolót, és töltsd fel a mappa teljes tartalmát.
@@ -117,7 +133,9 @@ public/                     a közzétett honlap
   js/main.js                útvonalak, jelenetek, előnézet
   js/organism.js            elrendezés, fizika, glitch, utófeldolgozás
   js/lidar.js               a pontfelhős 3D renderelő
-  css/, fonts/              stílusok, saját tárhelyről betöltött betűk (OFL)
+  css/, fonts/              stílusok, saját tárhelyről betöltött betűk (OFL, Roboto Mono: Apache)
+  js/reader.js              PDF-olvasó (folyóiratszámok)
+  vendor/pdfjs/             PDF.js 4.10
 netlify/functions/api.mjs   mentés, előzmények, média (Netlify Blobs)
 netlify.toml, package.json  Netlify beállítás (Node 22)
 ```

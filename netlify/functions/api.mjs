@@ -9,6 +9,14 @@
 //   POST /api/media?name=<fájl>   kép- vagy hangfájl feltöltése (jelszó kell)
 //   GET  /api/media/<fájl>        a feltöltött fájl
 //
+//   Nagy dokumentumok (pl. folyóiratszámok PDF-je) darabokban – a Netlify egy kérésben legfeljebb ~6 MB-ot enged:
+//   POST   /api/doc?name=<fájl>&size=<bájt>   feltöltés indítása (jelszó kell) → { id, partSize, parts }
+//   PUT    /api/doc/<id>/<n>                  az n-edik darab (jelszó kell)
+//   POST   /api/doc/<id>/finish               feltöltés lezárása (jelszó kell)
+//   DELETE /api/doc/<id>                      törlés (jelszó kell)
+//   GET    /api/doc/<id>                      a dokumentum adatai (méret, darabok)
+//   GET    /api/doc/<id>/<n>[?from=&to=]      az n-edik darab vagy annak egy szelete (a honlap PDF-olvasója ezekből rakja össze a lapokat)
+//
 // A jelszót a Netlify felületén kell megadni: Site configuration → Environment variables → ADMIN_PASSWORD.
 
 import { getStore } from "@netlify/blobs";
@@ -17,6 +25,8 @@ import { createHash, timingSafeEqual } from "node:crypto";
 const HISTORY_KEEP = 40;
 const MAX_CONTENT = 3 * 1024 * 1024;
 const MAX_MEDIA = 5.5 * 1024 * 1024;
+const DOC_PART = 3 * 1024 * 1024;          // egy darab mérete
+const MAX_DOC = 400 * 1024 * 1024;          // egy dokumentum legfeljebb 400 MB
 const MEDIA_TYPES = /^(image\/(png|jpe?g|gif|webp|avif|svg\+xml)|audio\/(mpeg|mp3|ogg|wav|x-wav|webm|aac|mp4|x-m4a|flac)|video\/(mp4|webm)|application\/pdf)$/;
 
 const json = (data, status = 200, headers = {}) =>
@@ -50,6 +60,7 @@ export default async (req) => {
   const path = url.pathname.replace(/^.*?\/api(?=\/|$)/, "").replace(/\/+$/, "") || "/";
   const store = getStore({ name: "site", consistency: "strong" });
   const media = getStore({ name: "media", consistency: "strong" });
+  const docs = getStore({ name: "docs", consistency: "strong" });
 
   try {
     if (path === "/content" && req.method === "GET") {
@@ -124,6 +135,77 @@ export default async (req) => {
       const r = await media.getWithMetadata(name, { type: "arrayBuffer" });
       if (!r) return fail(404, "Nincs ilyen fájl.");
       return new Response(r.data, { headers: { "content-type": r.metadata?.type || "application/octet-stream", "cache-control": "public, max-age=31536000, immutable" } });
+    }
+
+    /* ---------- nagy dokumentumok darabokban ---------- */
+    if (path === "/doc" && req.method === "POST") {
+      const a = await authorized(req);
+      if (!a.ok) return fail(a.status, a.message);
+      const size = Math.floor(Number(url.searchParams.get("size")));
+      if (!(size > 0)) return fail(400, "Hiányzik a fájl mérete.");
+      if (size > MAX_DOC) return fail(413, "A fájl túl nagy (legfeljebb 400 MB).");
+      let base = safeName(url.searchParams.get("name")).replace(/\.pdf$/, "") || "dokumentum";
+      let id = base;
+      if (await docs.get(`${id}/manifest`)) id = `${base}-${Date.now().toString(36)}`;
+      const manifest = { id, name: String(url.searchParams.get("name") || id).slice(0, 200), type: "application/pdf", size, partSize: DOC_PART, parts: Math.ceil(size / DOC_PART), complete: false, createdAt: new Date().toISOString() };
+      await docs.setJSON(`${id}/manifest`, manifest);
+      return json({ ok: true, id, partSize: DOC_PART, parts: manifest.parts });
+    }
+
+    const dm = path.match(/^\/doc\/([a-z0-9.\-_]+)(?:\/(\d+|finish))?$/);
+    if (dm) {
+      const [, id, sub] = dm;
+      const manifest = await docs.get(`${id}/manifest`, { type: "json" });
+      if (!manifest) return fail(404, "Nincs ilyen dokumentum.");
+
+      if (!sub && req.method === "GET") {
+        if (!manifest.complete) return fail(404, "A dokumentum feltöltése nem fejeződött be.");
+        return json(manifest, 200, { "cache-control": "public, max-age=60" });
+      }
+      if (/^\d+$/.test(sub || "") && req.method === "GET") {
+        const n = Number(sub);
+        if (!manifest.complete || n >= manifest.parts) return fail(404, "Nincs ilyen darab.");
+        const buf = await docs.get(`${id}/${n}`, { type: "arrayBuffer" });
+        if (!buf) return fail(404, "Hiányzó darab.");
+        // ?from=&to= : csak a darab egy szelete (a PDF-olvasó csak a látott lapokhoz kellő bájtokat kéri)
+        let body = buf;
+        if (url.searchParams.has("from")) {
+          const from = Math.max(0, Math.floor(Number(url.searchParams.get("from")) || 0));
+          const to = Math.min(buf.byteLength, Math.floor(Number(url.searchParams.get("to")) || buf.byteLength));
+          if (!(to > from)) return fail(416, "Érvénytelen tartomány.");
+          body = buf.slice(from, to);
+        }
+        return new Response(body, { headers: { "content-type": "application/octet-stream", "cache-control": "public, max-age=31536000, immutable" } });
+      }
+
+      const a = await authorized(req);
+      if (!a.ok) return fail(a.status, a.message);
+
+      if (/^\d+$/.test(sub || "") && req.method === "PUT") {
+        const n = Number(sub);
+        if (manifest.complete) return fail(409, "Ez a dokumentum már le van zárva.");
+        if (n >= manifest.parts) return fail(400, "Érvénytelen darabszám.");
+        const buf = await req.arrayBuffer();
+        const expected = Math.min(manifest.partSize, manifest.size - n * manifest.partSize);
+        if (buf.byteLength !== expected) return fail(400, `Hibás darabméret (${buf.byteLength}, várt: ${expected}).`);
+        await docs.set(`${id}/${n}`, buf);
+        return json({ ok: true, part: n });
+      }
+      if (sub === "finish" && req.method === "POST") {
+        const { blobs } = await docs.list({ prefix: `${id}/` });
+        const have = new Set(blobs.map((b) => b.key.slice(id.length + 1)));
+        const missing = [];
+        for (let n = 0; n < manifest.parts; n++) if (!have.has(String(n))) missing.push(n);
+        if (missing.length) return fail(409, `Hiányzó darabok: ${missing.slice(0, 10).join(", ")}${missing.length > 10 ? "…" : ""}`);
+        manifest.complete = true; manifest.finishedAt = new Date().toISOString();
+        await docs.setJSON(`${id}/manifest`, manifest);
+        return json({ ok: true, url: `/api/doc/${id}`, manifest });
+      }
+      if (!sub && req.method === "DELETE") {
+        const { blobs } = await docs.list({ prefix: `${id}/` });
+        await Promise.all(blobs.map((b) => docs.delete(b.key)));
+        return json({ ok: true });
+      }
     }
 
     return fail(404, "Ismeretlen kérés.");

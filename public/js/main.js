@@ -29,8 +29,9 @@ function applyContent(data) {
   applySettings(settings);
   const f = settings.fonts || {};
   const root = document.documentElement.style;
-  root.setProperty("--display", `"${f.display || "Syne"}", ${FONT_STACK.display}`);
-  root.setProperty("--body", `"${f.body || "Literata"}", ${FONT_STACK.body}`);
+  const stack = (fam, def) => (/Mono/.test(fam) ? "ui-monospace, Menlo, Consolas, monospace" : def);
+  root.setProperty("--display", `"${f.display || "Syne"}", ${stack(f.display || "", FONT_STACK.display)}`);
+  root.setProperty("--body", `"${f.body || "Literata"}", ${stack(f.body || "", FONT_STACK.body)}`);
   renderFooter();
   return Promise.race([
     Promise.all([document.fonts.load(`700 30px "${f.display || "Syne"}"`), document.fonts.load(`400 18px "${f.body || "Literata"}"`)]),
@@ -226,6 +227,14 @@ function workBody(cat, sub, w) {
   for (const p of w.about || []) h += `<p class="about">${esc(p)}</p>`;
   if (w.poem) h += `<div class="poem">${esc(w.poem)}</div>`;
   if (w.audio) h += `<audio class="audio" controls preload="none" src="${esc(w.audio)}"></audio>`;
+  if (w.issues?.length) {
+    h += `<h3 class="entries-title">${esc(w.issuesTitle || "Lapszámok")}</h3>`;
+    h += `<p class="entries-count">${w.issues.length} szám · kattints egy borítóra az olvasáshoz</p>`;
+    h += `<div class="issues">${w.issues.map((is, i) => `<button type="button" class="issue" data-issue="${i}" aria-label="${esc(is.title)} – megnyitás olvasásra">
+      <span class="issue-cover">${is.cover ? `<img src="${esc(is.cover)}" alt="" loading="lazy">` : `<span class="issue-ph">${esc(is.title)}</span>`}</span>
+      <span class="issue-title">${esc(is.title)}</span>${is.note ? `<span class="issue-note">${esc(is.note)}</span>` : ""}
+    </button>`).join("")}</div>`;
+  }
   if (w.embed) h += `<div class="embed"><iframe src="${esc(w.embed)}" title="${esc(w.title)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div>`;
   if (w.links?.length) h += `<ul class="links">${w.links.map((l) => `<li><a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join("")}</ul>`;
   if (w.entries?.length) {
@@ -301,6 +310,31 @@ function renderCrumbs(r) {
   el.innerHTML = c.map(item).join('<span class="crumb-sep" aria-hidden="true">›</span>');
 }
 
+/* ---------- PDF-olvasó (folyóiratszámok) ---------- */
+let reader = null;   // a betöltött reader.js modul
+const readerMod = () => import("./reader.js").then((m) => (reader = m));
+const szamParam = () => { if (HASH) return null; const q = new URLSearchParams(location.search); return q.has("szam") ? { i: +q.get("szam") - 1, p: +q.get("oldal") || 1 } : null; };
+function setSzamParam(i, p) {
+  if (HASH || PREVIEW) return;
+  const u = new URL(location.href);
+  if (i === null) { u.searchParams.delete("szam"); u.searchParams.delete("oldal"); }
+  else { u.searchParams.set("szam", i + 1); if (p > 1) u.searchParams.set("oldal", p); else u.searchParams.delete("oldal"); }
+  history.replaceState(history.state, "", u.pathname + u.search);
+}
+async function openIssue(work, i, page = 1) {
+  const issues = (work.issues || []).filter((x) => x && x.pdf);
+  const idx = issues.indexOf(work.issues[i]);
+  if (idx < 0) return;
+  if (org && org.pause) org.pause(true);   // a háttérgrafika olvasás közben szünetel
+  const m = await readerMod();
+  m.openReader({
+    issues, index: idx, page, workTitle: work.title,
+    onPage: (p) => setSzamParam(work.issues.indexOf(issues[idx]), p),
+    onClose: () => { setSzamParam(null); if (org && org.pause) org.pause(false); },
+  });
+}
+function closeIssue() { if (reader && reader.isOpen()) reader.closeReader(); }
+
 function render() {
   document.querySelectorAll(".app-stage.is-full").forEach((st) => setAppFull(st, false));
   if (PREVIEW && window.parent !== window) window.parent.postMessage({ type: "bm-path", path: currentPath() }, location.origin);
@@ -316,6 +350,7 @@ function render() {
   else cells.innerHTML = `<div class="fallback"><p class="fb-name">${esc(site.name)}</p><ul>${a11yLinks(r)}</ul></div>`;
 
   // szövegpanel
+  if (r.type !== "work" || currentPath() !== currentWorkKey) closeIssue();
   if (sc.panel) {
     const p = sc.panel, inset = 14;
     Object.assign(panelEl.style, {
@@ -331,6 +366,9 @@ function render() {
         if (currentWorkKey !== key) return;          // közben máshová lépett a látogató
         panelEl.innerHTML = workBody(r.cat, r.sub, r.work);
         panelEl.classList.toggle("has-app", !!r.work.app);
+        // megosztott link: ?szam=3&oldal=12 → a lapszám rögtön nyílik
+        const sz = szamParam();
+        if (sz && r.work.issues?.[sz.i]) openIssue(r.work, sz.i, sz.p);
         panelEl.scrollTop = 0;
         fitAppStage();
         panelEl.classList.add("show");
@@ -389,6 +427,8 @@ window.addEventListener("message", (e) => {
   if (st) setAppFull(st, false);
 });
 document.addEventListener("click", (e) => {
+  const iss = e.target.closest(".issue[data-issue]");
+  if (iss) { const r = resolve(currentPath()); if (r.type === "work") openIssue(r.work, +iss.dataset.issue); return; }
   const fb = e.target.closest(".app-full");
   if (fb) { const st = fb.closest(".app-stage"); setAppFull(st, !st.classList.contains("is-full")); return; }
   const a = e.target.closest("a");
