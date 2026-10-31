@@ -997,7 +997,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
   }
   requestAnimationFrame(frame);
   document.addEventListener("visibilitychange", () => {
-    running = !document.hidden && !still;
+    running = !document.hidden && !still && !paused;
     if (running) { last = performance.now(); requestAnimationFrame(frame); }
   });
 
@@ -1046,5 +1046,12 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pix);
     return (performance.now() - t) / n;
   };
-  return { setScene, resize, ripple, burst, size: () => ({ W, H }) };
+  let paused = false;
+  function pause(on) {
+    if (on === paused) return;
+    paused = on;
+    running = !on && !document.hidden && !still;
+    if (running) { last = performance.now(); requestAnimationFrame(frame); }
+  }
+  return { setScene, resize, ripple, burst, pause, size: () => ({ W, H }) };
 }

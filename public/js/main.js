@@ -214,6 +214,10 @@ function workBody(cat, sub, w) {
   for (const p of w.about || []) h += `<p class="about">${esc(p)}</p>`;
   if (w.poem) h += `<div class="poem">${esc(w.poem)}</div>`;
   if (w.audio) h += `<audio class="audio" controls preload="none" src="${esc(w.audio)}"></audio>`;
+  if (w.app) h += `<div class="app-stage" data-app="${esc(w.app)}">
+    <iframe src="${esc(w.app)}" title="${esc(w.title)}" loading="lazy" allow="autoplay; fullscreen; microphone; camera; midi; clipboard-write" allowfullscreen></iframe>
+    <button class="app-full" type="button" aria-label="Teljes képernyő">Teljes képernyő ⤢</button>
+  </div>`;
   if (w.embed) h += `<div class="embed"><iframe src="${esc(w.embed)}" title="${esc(w.title)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div>`;
   if (w.links?.length) h += `<ul class="links">${w.links.map((l) => `<li><a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join("")}</ul>`;
   if (w.entries?.length) {
@@ -290,6 +294,7 @@ function renderCrumbs(r) {
 }
 
 function render() {
+  document.querySelectorAll(".app-stage.is-full").forEach((st) => setAppFull(st, false));
   if (PREVIEW && window.parent !== window) window.parent.postMessage({ type: "bm-path", path: currentPath() }, location.origin);
   const r = resolve(currentPath());
   const W = window.innerWidth, H = window.innerHeight;
@@ -331,7 +336,27 @@ function go(path) {
   else { history.pushState(null, "", path); render(); }
 }
 
+// interaktív mű teljes képernyőn: a háttérgrafika ilyenkor szünetel, hogy a mű kapja a gép erejét
+function setAppFull(stage, on) {
+  stage.classList.toggle("is-full", on);
+  document.documentElement.classList.toggle("app-open", on);
+  stage.querySelector(".app-full").textContent = on ? "Bezárás ✕" : "Teljes képernyő ⤢";
+  if (org && org.pause) org.pause(on);
+  if (on) stage.querySelector("iframe").focus();
+}
+document.addEventListener("keydown", (e) => {
+  const st = document.querySelector(".app-stage.is-full");
+  if (st && e.key === "Escape") setAppFull(st, false);
+});
+// a beágyazott programon belül lenyomott Esc is bezárja a teljes képernyőt
+window.addEventListener("message", (e) => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== "app-escape") return;
+  const st = document.querySelector(".app-stage.is-full");
+  if (st) setAppFull(st, false);
+});
 document.addEventListener("click", (e) => {
+  const fb = e.target.closest(".app-full");
+  if (fb) { const st = fb.closest(".app-stage"); setAppFull(st, !st.classList.contains("is-full")); return; }
   const a = e.target.closest("a");
   if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   const href = a.getAttribute("href");

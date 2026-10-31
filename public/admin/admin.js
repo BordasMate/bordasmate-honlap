@@ -443,6 +443,7 @@ function viewWork() {
       textField("Vers vagy részlet", w.poem, (v) => { w.poem = v || undefined; changed({ tree: false }); }, { area: true, rows: 7, help: "A sortörések és behúzások megmaradnak." })),
     group("Média",
       mediaField("Kép", w.image, (v) => { w.image = v || undefined; changed({ tree: false }); }, "image/*", "pl. /media/borito.jpg"),
+      textField("Interaktív mű (beágyazott program)", w.app, (v) => { w.app = v || undefined; changed({ tree: false }); }, { placeholder: "/muvek/tervrajzok/", help: "A honlapba épített program címe (a public/muvek/ mappában). A műoldalon közvetlenül fut, teljes képernyőre nagyítható." }),
       mediaField("Hangfájl", w.audio, (v) => { w.audio = v || undefined; changed({ tree: false }); }, "audio/*", "pl. /media/felolvasas.mp3"),
       textField("Beágyazott lejátszó vagy videó (embed URL)", w.embed, (v) => { w.embed = v || undefined; changed({ tree: false }); }, { type: "url", placeholder: "https://www.youtube.com/embed/…", help: "Bandcamp, SoundCloud vagy YouTube „beágyazás” (embed) linkje." })),
     linksEditor(w),

@@ -73,8 +73,24 @@ lementhető fájlba (biztonsági másolatnak is jó), a **Betöltés** gombbal
 visszatölthető.
 
 Egy mű mezői: `title`, `slug`, `meta`, `about`, `poem`, `image`, `audio`,
-`embed`, `links`, valamint `entries` – publikációs lista, amely a honlapon
+`embed`, `app`, `links`, valamint `entries` – publikációs lista, amely a honlapon
 évenként csoportosítva jelenik meg (`year`, `title`, `source`, `link`, `note`).
+
+## Beágyazott programok
+
+A `public/muvek/` mappában a generatív művek böngészős átiratai vannak; a mű
+`app` mezője mutat rájuk (a szerkesztőben: „Interaktív mű”). A honlapon
+keretben futnak, a „Teljes képernyő” gombbal kinagyíthatók (Esc: vissza).
+
+- `muvek/tervrajzok/` – *Tervrajzok: az audiovizualitás üledékei* (2025).
+  A 24 oldal fóliaszimulációja, olvasósáv, betűhang-generátor és szűrt
+  fehérzaj. A hangmotor (`audio-worklet.js`) az eredeti Python-program
+  pontos átirata; a SciPy Butterworth-szűrőit számszerűen ellenőrizve követi.
+- `muvek/monstrorum-infinitum/` – *Monstrorum Infinitum* (Bordás Máté –
+  Mezei Gábor, 2025), az eredeti 12 hangmintával.
+
+A böngészők csak kattintás után engednek hangot, ezért a programok egy
+kattintással indulnak.
 
 ## Közzététel GitHubon és Netlify-on (első alkalommal)
 
