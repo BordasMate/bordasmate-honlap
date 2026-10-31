@@ -7,8 +7,8 @@ const LS_PASS = "bm-admin-pass";
 const SS_PASS = "bm-admin-pass";
 
 const FONTS = {
-  display: ["Syne", "Unbounded", "Bricolage Grotesque", "Space Grotesk", "Fraunces"],
-  body: ["Literata", "Newsreader", "Source Serif 4", "Space Grotesk"],
+  display: ["Syne", "Unbounded", "Bricolage Grotesque", "Space Grotesk", "Fraunces", "Redaction 50", "Lora", "DM Mono", "Roboto Mono"],
+  body: ["Literata", "Newsreader", "Source Serif 4", "Lora", "Redaction 50", "Space Grotesk", "DM Mono", "Roboto Mono"],
 };
 const PALETTE_KEYS = ["titan", "rez", "kobalt", "zoldarany"];
 const DEFAULTS = {
@@ -443,12 +443,148 @@ function viewWork() {
       textField("Vers vagy részlet", w.poem, (v) => { w.poem = v || undefined; changed({ tree: false }); }, { area: true, rows: 7, help: "A sortörések és behúzások megmaradnak." })),
     group("Média",
       mediaField("Kép", w.image, (v) => { w.image = v || undefined; changed({ tree: false }); }, "image/*", "pl. /media/borito.jpg"),
+      textField("Interaktív mű (beágyazott program)", w.app, (v) => { w.app = v || undefined; changed({ tree: false }); }, { placeholder: "/muvek/tervrajzok/", help: "A honlapba épített program címe (a public/muvek/ mappában). A műoldalon közvetlenül fut, teljes képernyőre nagyítható." }),
       mediaField("Hangfájl", w.audio, (v) => { w.audio = v || undefined; changed({ tree: false }); }, "audio/*", "pl. /media/felolvasas.mp3"),
       textField("Beágyazott lejátszó vagy videó (embed URL)", w.embed, (v) => { w.embed = v || undefined; changed({ tree: false }); }, { type: "url", placeholder: "https://www.youtube.com/embed/…", help: "Bandcamp, SoundCloud vagy YouTube „beágyazás” (embed) linkje." })),
     linksEditor(w),
+    issuesEditor(w),
     entriesEditor(w),
   ];
   return parts;
+}
+
+/* ---------------- folyóiratszámok: PDF-olvasó a honlapon ---------------- */
+
+// fájlnévből cím: "ROST_2019_3.pdf" → "ROST 2019/3"
+function titleFromFile(name) {
+  let t = name.replace(/\.pdf$/i, "").replace(/[_]+/g, " ").replace(/\s+/g, " ").trim();
+  const m = t.match(/^(.*?)[\s\-]*((?:19|20)\d{2})[\s\-\/.]+(\d{1,2})(?!\d)(.*)$/);
+  if (m) t = `${m[1].trim()} ${m[2]}/${m[3]}${m[4]}`.trim();
+  return t;
+}
+
+let pdfjsP = null;
+const pdfjs = () => (pdfjsP ||= import("/vendor/pdfjs/pdf.min.mjs").then((m) => { m.GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.min.mjs"; return m; }));
+
+// a PDF első oldalából borítókép (JPEG), feltöltve a médiatárba
+async function coverFromPdf(file) {
+  const lib = await pdfjs();
+  const buf = await file.arrayBuffer();
+  const doc = await lib.getDocument({ data: buf, cMapUrl: "/vendor/pdfjs/cmaps/", cMapPacked: true, standardFontDataUrl: "/vendor/pdfjs/standard_fonts/", isEvalSupported: false }).promise;
+  try {
+    const page = await doc.getPage(1);
+    const v1 = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: 640 / v1.width });
+    const c = document.createElement("canvas");
+    c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.84));
+    const name = file.name.replace(/\.pdf$/i, "") + "-borito.jpg";
+    return await uploadMedia(new File([blob], name, { type: "image/jpeg" }));
+  } finally { doc.destroy(); }
+}
+
+// nagy PDF feltöltése darabokban (a Netlify egy kérésben ~6 MB-ot enged)
+async function uploadDoc(file, onProgress) {
+  if (!/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name)) throw new Error("Csak PDF tölthető fel lapszámként.");
+  const start = await withLogin(() => api(`doc?name=${encodeURIComponent(file.name)}&size=${file.size}`, { method: "POST" }));
+  const { id, partSize, parts } = start;
+  let done = 0, next = 0;
+  const sendPart = async (n) => {
+    const blob = file.slice(n * partSize, Math.min(file.size, (n + 1) * partSize));
+    for (let attempt = 1; ; attempt++) {
+      try { await withLogin(() => api(`doc/${id}/${n}`, { method: "PUT", body: blob, type: "application/octet-stream" })); break; }
+      catch (err) { if (attempt >= 4 || err.status === 401) throw err; await new Promise((r) => setTimeout(r, 800 * attempt)); }
+    }
+    done++; onProgress && onProgress(done / parts);
+  };
+  const worker = async () => { while (next < parts) await sendPart(next++); };
+  await Promise.all(Array.from({ length: Math.min(3, parts) }, worker));
+  const fin = await withLogin(() => api(`doc/${id}/finish`, { method: "POST" }));
+  return fin.url;
+}
+
+const busy = new WeakMap();   // feltöltés állapota lapszámonként (nem kerül a mentésbe)
+function issuesEditor(w) {
+  const box = h("div.list");
+  const count = h("span", {}, "");
+  const ensure = () => { w.issues = w.issues || []; };
+  const tidy = () => { if (w.issues && !w.issues.length) delete w.issues; };
+  const draw = () => {
+    box.innerHTML = "";
+    const list = w.issues || [];
+    count.textContent = list.length ? ` (${list.length})` : "";
+    if (!list.length) box.append(h("p.list-empty", {}, "Nincs lapszám. Tölts fel PDF-eket (egyszerre többet is): a honlapon borítóként jelennek meg, és kattintásra a beépített olvasóban lapozhatók, olvashatók."));
+    list.forEach((is, i) => {
+      const prog = h("div.issue-prog", { hidden: !busy.get(is) }, busy.get(is) || "");
+      const thumb = h("div.issue-thumb", {}, is.cover ? h("img", { src: is.cover, alt: "" }) : h("span", {}, "nincs borító"));
+      const coverIn = h("input", { value: is.cover || "", placeholder: "Borítókép (nem kötelező)", oninput: (e) => { is.cover = e.target.value.trim() || undefined; changed({ tree: false }); } });
+      const pdfIn = h("input", { value: is.pdf || "", placeholder: "PDF (/api/doc/… vagy https://…)", oninput: (e) => { is.pdf = e.target.value.trim(); changed({ tree: false }); } });
+      const pickPdf = h("input", { type: "file", accept: "application/pdf,.pdf", hidden: true, onchange: async (e) => { const f = e.target.files[0]; e.target.value = ""; if (f) await uploadInto(is, f, { cover: !is.cover }); } });
+      const pickCover = h("input", { type: "file", accept: "image/*", hidden: true, onchange: async (e) => {
+        const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+        try { is.cover = await uploadMedia(f); changed({ tree: false }); draw(); } catch (err) { toast(esc(err.message), "err", 7000); }
+      } });
+      box.append(h("div.list-item.issue-item", {},
+        h("div.issue-row", {}, thumb,
+          h("div.fields", {},
+            h("input", { value: is.title || "", placeholder: "Cím (pl. ROST 2019/3)", oninput: (e) => { is.title = e.target.value; changed({ tree: false }); } }),
+            h("input", { value: is.note || "", placeholder: "Alcím, megjegyzés (pl. tavasz · Szövegköltészet)", oninput: (e) => { is.note = e.target.value || undefined; changed({ tree: false }); } }),
+            h("div.slug-wrap", {}, pdfIn, h("button.small", { type: "button", onclick: () => pickPdf.click() }, is.pdf ? "PDF csere" : "PDF feltöltése"), pickPdf),
+            h("div.slug-wrap", {}, coverIn,
+              h("button.small", { type: "button", onclick: () => pickCover.click() }, "Kép"),
+              h("button.small", { type: "button", title: "Borító a feltöltendő PDF első oldalából", onclick: () => { const f = h("input", { type: "file", accept: "application/pdf,.pdf" }); f.onchange = async () => { if (!f.files[0]) return; busy.set(is, "Borító készítése…"); draw(); try { is.cover = await coverFromPdf(f.files[0]); } catch (err) { toast(esc(err.message), "err", 7000); } busy.delete(is); changed({ tree: false }); draw(); }; f.click(); } }, "Borító PDF-ből"),
+              pickCover),
+            prog)),
+        h("div.ops", {},
+          h("button.icon", { title: "Fel", onclick: () => { moveIn(w.issues, i, -1); changed({ tree: false }); draw(); } }, "↑"),
+          h("button.icon", { title: "Le", onclick: () => { moveIn(w.issues, i, 1); changed({ tree: false }); draw(); } }, "↓"),
+          h("button.icon", { title: "Törlés", onclick: async () => {
+            if (!confirm(`Törlöd a(z) „${is.title || "névtelen"}” lapszámot a listából?`)) return;
+            const docId = /^\/api\/doc\/([^/]+)$/.exec(is.pdf || "")?.[1];
+            w.issues.splice(i, 1); tidy(); changed({ tree: false }); draw();
+            if (docId && confirm("A feltöltött PDF-et is törlöd a honlap tárhelyéről? (Ha a lapszám máshol nem szerepel, igen.)")) {
+              try { await withLogin(() => api(`doc/${docId}`, { method: "DELETE" })); toast("A PDF törölve a tárhelyről.", "ok"); } catch (err) { toast(esc(err.message), "err", 7000); }
+            }
+          } }, "✕"))));
+    });
+  };
+  async function uploadInto(is, file, { cover = true } = {}) {
+    busy.set(is, "Feltöltés… 0%"); draw();
+    try {
+      if (cover) { busy.set(is, "Borító készítése…"); draw(); try { is.cover = await coverFromPdf(file); } catch (err) { console.warn(err); } }
+      is.pdf = await uploadDoc(file, (p) => { busy.set(is, `Feltöltés… ${Math.round(p * 100)}%`); const el = box.querySelectorAll(".issue-prog")[w.issues.indexOf(is)]; if (el) { el.hidden = false; el.textContent = busy.get(is); } });
+      busy.delete(is);
+      changed({ tree: false }); draw();
+      return true;
+    } catch (err) {
+      busy.set(is, "Hiba: " + err.message); draw();
+      toast(esc(err.message), "err", 9000);
+      return false;
+    }
+  }
+  const multi = h("input", { type: "file", accept: "application/pdf,.pdf", multiple: true, hidden: true, onchange: async (e) => {
+    const files = [...e.target.files]; e.target.value = "";
+    if (!files.length) return;
+    if (!(await ensureLogin())) return;
+    ensure();
+    files.sort((a, b) => a.name.localeCompare(b.name, "hu", { numeric: true }));
+    const items = files.map((f) => ({ title: titleFromFile(f.name), pdf: "" }));
+    items.forEach((it) => busy.set(it, "Várakozás…"));
+    w.issues.push(...items); changed({ tree: false }); draw();
+    let ok = 0;
+    for (let k = 0; k < files.length; k++) if (await uploadInto(items[k], files[k])) ok++;
+    toast(`${ok} lapszám feltöltve${ok < files.length ? `, ${files.length - ok} sikertelen` : ""}. A honlapon a Mentés után jelenik meg.`, ok === files.length ? "ok" : "err", 8000);
+  } });
+  draw();
+  return group(h("h3", {}, "Lapszámok (PDF-olvasó)", count,
+      h("button.small", { onclick: () => multi.click() }, "+ PDF-ek feltöltése"),
+      h("button.small", { onclick: () => { ensure(); w.issues.push({ title: "", pdf: "" }); changed({ tree: false }); draw(); } }, "+ üres sor"), multi),
+    textField("A lista címe a honlapon", w.issuesTitle, (v) => { w.issuesTitle = v || undefined; changed({ tree: false }); }, { placeholder: "Lapszámok" }),
+    box,
+    h("small.note", {}, "A PDF-ek darabokban kerülnek a honlap tárhelyére, így nagy (akár több száz MB-os) számok is feltölthetők. Olvasáskor csak a megnyitott oldalakhoz szükséges részek töltődnek le."));
 }
 
 function mediaField(label, value, set, accept, placeholder) {

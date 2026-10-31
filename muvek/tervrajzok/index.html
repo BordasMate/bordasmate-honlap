@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bordás Máté - Tervrajzok: az audiovizualitás üledékei, 2025</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #202020; }
+  /* az eredeti ablak felosztása (konzol | lap | konzol) a rendelkezésre álló térhez igazítva:
+     a lap mindig a teljes magasságot kapja, a két konzol a maradék szélességet, a betűméret ehhez igazodik */
+  #win { position: absolute; inset: 0; display: flex; background: #202020; }
+  .console {
+    flex: 0 0 auto; height: 100%; box-sizing: border-box;
+    background: #101010; color: #fff; overflow: hidden;
+    font-family: Consolas, "Cascadia Mono", "Lucida Console", "DejaVu Sans Mono", monospace;
+    font-size: 12px; line-height: 14px;
+    padding: 2px 4px; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .console.off { display: none; }
+  #mid { position: relative; flex: 1 1 auto; height: 100%; overflow: hidden; background: #202020; }
+  #cv { position: absolute; left: 0; top: 0; display: block; }
+  #menu {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); transform-origin: 50% 50%;
+    background: #202020; display: flex; flex-direction: column; align-items: center;
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+  #menu .title { color: #fff; font-size: 21px; font-weight: 700; text-align: center; max-width: 900px;
+    white-space: pre-line; line-height: 1.33; margin: 0 0 16px; padding: 1px; }
+  #menu button { font: 700 19px "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color: #202020; background: #fff; border: 0; padding: 8px 24px; margin: 0 0 12px; cursor: pointer; border-radius: 0; }
+  #menu button:active { background: #e0e0e0; }
+  #menu .hint { color: #cfcfcf; font-size: 13px; line-height: 1.35; text-align: left; white-space: pre; padding: 1px; }
+  #menu.hidden { display: none; }
+</style>
+</head>
+<body>
+<div id="win">
+  <div class="console" id="logL"></div>
+  <div id="mid">
+    <canvas id="cv"></canvas>
+    <div id="menu">
+      <div class="title"></div>
+      <button type="button" id="olvas">Olvasás</button>
+      <div class="hint"></div>
+    </div>
+  </div>
+  <div class="console" id="logR"></div>
+</div>
+<script>
+"use strict";
+// Bordás Máté: Tervrajzok – az audiovizualitás üledékei (2025)
+// Az eredeti Python/Tkinter program (FULLOS_tervrajzok_foliaszim.py, OverlayBookViewer) böngészős átirata.
+
+const PAGE_COUNT = 24;
+const BG_GRAY = "rgb(225,225,225)";
+const MIN_ALPHA_BOTTOM = 0.2;
+const STRIP_HEIGHT_FRAC = 0.2;
+const ARROW_SIZE = 12, ARROW_GAP = 80, ARROW_SPACING = 320, HITBOX_RADIUS = 18;
+const COUNTER_FONT = '700 24px "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
+const COUNTER_OFFSET_Y = 30;
+const TITLE_TEXT = "Bordás Máté\nTervrajzok: az audiovizualitás üledékei\n2025";
+const INSTRUCTION_TEXT = "\nOlvasás: a versciklus szövegét használó \nszinusz oszcillátoros hanggenerátor elindítása,\na versciklus ömlesztett oldalainak megnyitása.\n\nJobbklikk: olvasósáv megjelenítése.\n\nEgérmozgás: fehérzaj generálás különbnöző szűrőkkel és\nszinusz oszcillátorral az oldalakon lévő, \nolvasósávval lefedett betűk száma alapján.";
+const REF_H = 1000;                         // az eredeti ablak magassága (geometry 1600x1000): ehhez arányosak a nyilak és a számláló
+const LOG_CHARS = 51;                        // a leghosszabb naplósor hossza: [LetterTone] 7692/7692 (100.0%) – 'zs' → 587.33 Hz
+const GUI_LOG_MAX_LINES = 300;
+const SILENCE_DELAY_MS = 150;
+
+const win = document.getElementById("win");
+const mid = document.getElementById("mid");
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const menu = document.getElementById("menu");
+const logL = document.getElementById("logL"), logR = document.getElementById("logR");
+menu.querySelector(".title").textContent = TITLE_TEXT;
+menu.querySelector(".hint").textContent = INSTRUCTION_TEXT;
+
+/* ---------------- állapot ---------------- */
+let mode = "menu";
+let top_page = 1;
+let strip_pos = 0.3;
+let strip_visible = false;
+let page_images = [];                       // HTMLImageElement-ek (RGBA: fekete betű, alfa = invertált szürke)
+let native_w = 900, native_h = 1200;
+let display_w = 1, display_h = 1;
+let current_disp_bounds = [0, 0, 0, 0];
+let _cached_stack = null, _cached_key = null;
+let _pending_render = false;
+let scale = 1, dpr = 1;
+const rowSums = new Map();                  // oldalanként a sorok alfaösszege (a sűrűségszámításhoz)
+
+/* ---------------- elrendezés ---------------- */
+let k = 1;                                   // a kezelőelemek mérete az eredeti 1000 px magas ablakhoz képest
+let fitWidth = false;                        // keskeny keretben (telefon) a lap a szélességhez igazodik
+const PAGE_ASPECT = 1166 / 1654;             // az A5-ös oldalak 200 dpi-s képének aránya
+function layout() {
+  const W = Math.max(1, window.innerWidth), H = Math.max(1, window.innerHeight);
+  const pageW = Math.floor(H * PAGE_ASPECT);
+  let cw = Math.floor((W - pageW) / 2);
+  fitWidth = cw < 90;                        // nincs hely a konzoloknak: elrejtjük őket
+  if (fitWidth) cw = 0;
+  for (const el of [logL, logR]) {
+    el.classList.toggle("off", fitWidth);
+    el.style.width = cw + "px";
+    // a betűméret akkora, hogy egy naplósor kitöltse a konzol szélességét (11–22 px között; ha kisebb kellene, a sor tördelődik)
+    const fs = Math.max(11, Math.min(22, (cw - 8) / (LOG_CHARS * 0.56)));
+    el.style.fontSize = fs.toFixed(2) + "px";
+    el.style.lineHeight = Math.round(fs * 1.18) + "px";
+  }
+  display_w = Math.max(1, W - 2 * cw); display_h = H;
+  dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(display_w * dpr); cv.height = Math.round(display_h * dpr);
+  cv.style.width = display_w + "px"; cv.style.height = display_h + "px";
+  fitMenu();
+  _render_full();                            // _on_canvas_configure
+  for (const el of [logL, logR]) el.scrollTop = el.scrollHeight;
+}
+function fitMenu() {
+  menu.style.transform = "translate(-50%, -50%)";
+  const w = menu.offsetWidth, h = menu.offsetHeight;
+  const ms = Math.min(Math.max(1, display_h / REF_H), (display_w - 24) / w, (display_h - 24) / h);
+  menu.style.transform = `translate(-50%, -50%) scale(${ms})`;
+}
+window.addEventListener("resize", layout);
+
+/* ---------------- konzolok ---------------- */
+function append_console_line(el, line) {
+  el.appendChild(document.createTextNode(line + "\n"));
+  const lines = el.childNodes.length;
+  if (lines > GUI_LOG_MAX_LINES) {
+    const drop = Math.min(10, lines - GUI_LOG_MAX_LINES);
+    for (let i = 0; i < drop; i++) el.removeChild(el.firstChild);
+  }
+}
+const logQueue = [];
+function poll_log_queue() {
+  if (logQueue.length) {
+    while (logQueue.length) { const line = logQueue.shift(); append_console_line(logL, line); append_console_line(logR, line); }
+    logL.scrollTop = logL.scrollHeight; logR.scrollTop = logR.scrollHeight;
+  }
+  setTimeout(poll_log_queue, 50);
+}
+setTimeout(poll_log_queue, 50);
+
+/* ---------------- hang ---------------- */
+let actx = null, node = null, audioReady = null;
+function initAudio() {
+  if (audioReady) return audioReady;
+  audioReady = (async () => {
+    try { actx = new AudioContext({ sampleRate: 44100, latencyHint: "interactive" }); }
+    catch (e) { actx = new AudioContext(); }
+    await actx.audioWorklet.addModule("audio-worklet.js");
+    node = new AudioWorkletNode(actx, "tervrajzok", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    node.port.onmessage = (e) => { for (const l of e.data) logQueue.push(l); };
+    node.connect(actx.destination);
+  })();
+  return audioReady;
+}
+function resumeAudio() { initAudio().then(() => { if (actx.state !== "running") actx.resume(); }); }
+const send = (m) => { if (node) node.port.postMessage(m); };
+// a hangmotor az eredetiben már az ablak megnyitásakor fut; a böngésző az első érintésig/kattintásig némíthatja
+initAudio().then(() => { if (actx.state !== "running") actx.resume().catch(() => {}); });
+for (const ev of ["pointerdown", "keydown"]) window.addEventListener(ev, resumeAudio, true);
+
+let _silence_after_id = null;
+function audio_set_active(flag) { send({ type: "active", flag }); }
+function set_mod_from_density(d) { send({ type: "density", value: d }); }
+function kick_audio_for_motion() {
+  audio_set_active(true);
+  if (_silence_after_id !== null) clearTimeout(_silence_after_id);
+  _silence_after_id = setTimeout(() => audio_set_active(false), SILENCE_DELAY_MS);
+}
+
+/* ---------------- oldalak betöltése ---------------- */
+let pagesPromise = null;
+function loadPages() {
+  if (pagesPromise) return pagesPromise;
+  pagesPromise = Promise.all(Array.from({ length: PAGE_COUNT }, (_, i) => new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im); im.onerror = rej;
+    im.src = `pages/${String(i + 1).padStart(2, "0")}.png`;
+  })));
+  return pagesPromise;
+}
+loadPages();
+let textPromise = fetch("szoveg.txt").then((r) => r.text());
+
+/* ---------------- olvasás indítása ---------------- */
+document.getElementById("olvas").addEventListener("click", async () => {
+  resumeAudio();
+  let layers, text;
+  try { [layers, text] = await Promise.all([loadPages(), textPromise]); }
+  catch (e) { alert("Nem sikerült betölteni az oldalakat."); return; }
+  page_images = layers;
+  native_w = layers[0].naturalWidth; native_h = layers[0].naturalHeight;
+  _invalidate_cache();
+  mode = "reading";
+  menu.classList.add("hidden");
+  strip_visible = false;
+  _invalidate_cache();
+  _render_full();
+  cv.focus();
+  await initAudio();
+  set_mod_from_density(0.0);
+  send({ type: "play", text });
+});
+
+/* ---------------- sűrűség ---------------- */
+function rowSumsFor(p) {
+  if (rowSums.has(p)) return rowSums.get(p);
+  const im = page_images[p - 1];
+  const c = document.createElement("canvas"); c.width = native_w; c.height = native_h;
+  const g = c.getContext("2d", { willReadFrequently: true });
+  g.drawImage(im, 0, 0);
+  const d = g.getImageData(0, 0, native_w, native_h).data;
+  const rs = new Float64Array(native_h);
+  for (let y = 0; y < native_h; y++) { let s = 0; const o = y * native_w * 4; for (let x = 0; x < native_w; x++) s += d[o + x * 4 + 3]; rs[y] = s; }
+  rowSums.set(p, rs);
+  return rs;
+}
+function _update_strip_density() {
+  if (!page_images.length || !strip_visible) { set_mod_from_density(0.0); return; }
+  try {
+    const Wn = native_w, Hn = native_h;
+    const y_center = Math.trunc(strip_pos * Hn);
+    const h = Math.trunc(STRIP_HEIGHT_FRAC * Hn);
+    const y0 = Math.max(0, y_center - Math.floor(h / 2));
+    const y1 = Math.min(Hn, y0 + h);
+    if (y1 <= y0) { set_mod_from_density(0.0); return; }
+    const rs = rowSumsFor(top_page);
+    let s = 0; for (let y = y0; y < y1; y++) s += rs[y];
+    set_mod_from_density(s / ((y1 - y0) * Wn) / 255.0);
+  } catch (e) { set_mod_from_density(0.0); }
+}
+
+/* ---------------- kirajzolás ---------------- */
+function _invalidate_cache() { _cached_stack = null; _cached_key = null; }
+function _ensure_stack_cache() {
+  if (!page_images.length) return null;
+  const key = top_page + "|" + MIN_ALPHA_BOTTOM;
+  if (key === _cached_key && _cached_stack) return _cached_stack;
+  const Wn = native_w, Hn = native_h;
+  const base = document.createElement("canvas"); base.width = Wn; base.height = Hn;
+  const g = base.getContext("2d");
+  g.fillStyle = BG_GRAY; g.fillRect(0, 0, Wn, Hn);
+  const tp = top_page;
+  const below = []; for (let p = tp + 1; p <= PAGE_COUNT; p++) below.push(p);
+  const B = below.length;
+  below.slice().reverse().forEach((p, i) => {      // a legmélyebb oldal kerül legalulra
+    const idx = i + 1, d = B - idx + 1;
+    const alpha_scale = B > 0 ? 1.0 - d * (1.0 - MIN_ALPHA_BOTTOM) / B : 1.0;
+    g.globalAlpha = alpha_scale;
+    g.drawImage(page_images[p - 1], 0, 0);
+  });
+  g.globalAlpha = 1;
+  _cached_stack = base; _cached_key = key;
+  return base;
+}
+const work = document.createElement("canvas");
+const wctx = work.getContext("2d");
+function bgFill() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = "#202020"; ctx.fillRect(0, 0, display_w, display_h);
+}
+let lastImage = null;    // a kirajzolt kép, hogy az átfedő elemek újrarajzolhatók legyenek
+function _render_full() {
+  _pending_render = false;
+  bgFill(); lastImage = null;
+  if (mode === "menu") return;
+  if (!page_images.length) return;
+  _ensure_stack_cache();
+  _render_light();
+}
+function _schedule_render_light() {
+  if (_pending_render) return;
+  _pending_render = true;
+  requestAnimationFrame(_render_light);
+}
+function _render_light() {
+  _pending_render = false;
+  if (mode !== "reading" || !page_images.length) { bgFill(); _draw_overlays(); return; }
+  const Wn = native_w, Hn = native_h;
+  const stack = _ensure_stack_cache();
+  if (!stack) return;
+  if (work.width !== Wn || work.height !== Hn) { work.width = Wn; work.height = Hn; }
+  wctx.globalAlpha = 1;
+  wctx.drawImage(stack, 0, 0);
+  if (strip_visible) {
+    const y_center = Math.trunc(strip_pos * Hn);
+    const h = Math.trunc(STRIP_HEIGHT_FRAC * Hn);
+    const y0 = Math.max(0, y_center - Math.floor(h / 2));
+    const y1 = Math.min(Hn, y0 + h);
+    wctx.fillStyle = "#fff"; wctx.fillRect(0, y0, Wn, y1 - y0);
+  }
+  wctx.drawImage(page_images[top_page - 1], 0, 0);
+  const Wd = Math.max(1, display_w), Hd = Math.max(1, display_h);
+  let disp_h = Hd;
+  let disp_w = Math.max(1, Math.trunc(native_w * (disp_h / native_h)));
+  if (fitWidth && disp_w > Wd) { disp_w = Wd; disp_h = Math.max(1, Math.trunc(native_h * (disp_w / native_w))); }
+  k = disp_h / REF_H;
+  const x0 = Math.max(0, Math.floor((Wd - disp_w) / 2)), y0 = 0;
+  current_disp_bounds = [x0, y0, x0 + disp_w, y0 + disp_h];
+  lastImage = [x0, y0, disp_w, disp_h];
+  _draw_overlays();
+}
+function paintImage() {
+  bgFill();
+  if (!lastImage) return;
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  const [x0, y0, w, h] = lastImage;
+  ctx.drawImage(work, x0, y0, w, h);
+}
+function _bottom_arrow_positions() {
+  const [x0, y0, x1, y1] = current_disp_bounds;
+  if ((x0 === x1 && x1 === 0) || (y0 === y1 && y1 === 0)) return [null, null];
+  const cx = Math.floor((x0 + x1) / 2), y = y1 - ARROW_GAP * k;
+  return [[cx - ARROW_SPACING * k, y], [cx + ARROW_SPACING * k, y]];
+}
+function _bottom_arrow_hit(x, y) {
+  const [left, right] = _bottom_arrow_positions();
+  if (!left) return null;
+  const r = Math.max(HITBOX_RADIUS * k, 14);
+  if ((x - left[0]) ** 2 + (y - left[1]) ** 2 <= r ** 2) return "left";
+  if ((x - right[0]) ** 2 + (y - right[1]) ** 2 <= r ** 2) return "right";
+  return null;
+}
+function _draw_overlays() {
+  paintImage();
+  if (mode !== "reading" || !page_images.length) return;
+  const [left, right] = _bottom_arrow_positions();
+  if (!left) return;
+  const s = ARROW_SIZE * k;
+  const tri = ([cx, cy], dir) => dir === "left"
+    ? [[cx + s, cy - s], [cx - s, cy], [cx + s, cy + s]]
+    : [[cx - s, cy - s], [cx + s, cy], [cx - s, cy + s]];
+  ctx.fillStyle = "#000";
+  for (const [pt, dir] of [[left, "left"], [right, "right"]]) {
+    const p = tri(pt, dir);
+    ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); ctx.lineTo(p[1][0], p[1][1]); ctx.lineTo(p[2][0], p[2][1]); ctx.closePath(); ctx.fill();
+  }
+  const cx = Math.floor((left[0] + right[0]) / 2), cy = left[1] + COUNTER_OFFSET_Y * k;
+  ctx.font = COUNTER_FONT.replace("24px", Math.max(11, 24 * k).toFixed(1) + "px"); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(`${top_page} / ${PAGE_COUNT}`, cx, cy);
+}
+
+/* ---------------- interakció ---------------- */
+function _mouse_on_image(x, y) {
+  const [x0, y0, x1, y1] = current_disp_bounds;
+  return x0 <= x && x <= x1 && y0 <= y && y <= y1;
+}
+function _set_strip_from_display_y(y_disp) {
+  const [x0, y0, x1, y1] = current_disp_bounds;
+  const H_disp = Math.max(1, y1 - y0);
+  const clamped = Math.min(Math.max(y_disp, y0), y1);
+  let pos_frac = (clamped - y0) / H_disp;
+  pos_frac = Math.min(Math.max(pos_frac, 0.0), 1.0);
+  if (Math.abs(pos_frac - strip_pos) < 0.0001) return;
+  strip_pos = pos_frac;
+  _schedule_render_light();
+}
+function _step_page(delta) {
+  if (mode !== "reading") return;
+  const new_p = Math.min(PAGE_COUNT, Math.max(1, top_page + delta));
+  if (new_p !== top_page) { top_page = new_p; _invalidate_cache(); _render_full(); }
+}
+function evPos(e) {
+  const r = cv.getBoundingClientRect();
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+let b1down = false;
+cv.addEventListener("pointermove", (e) => {
+  const [x, y] = evPos(e);
+  if (b1down) {                                       // <B1-Motion>
+    kick_audio_for_motion();
+    if (mode !== "reading" || !page_images.length || !strip_visible) return;
+    if (_mouse_on_image(x, y)) { _set_strip_from_display_y(y); _update_strip_density(); }
+    return;
+  }
+  kick_audio_for_motion();                            // <Motion>
+  if (mode !== "reading" || !page_images.length) return;
+  if (_mouse_on_image(x, y) && strip_visible) { _set_strip_from_display_y(y); _update_strip_density(); }
+  _draw_overlays();
+});
+cv.addEventListener("pointerdown", (e) => {
+  const [x, y] = evPos(e);
+  if (e.button === 0) {                               // <Button-1>
+    b1down = true;
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    if (mode !== "reading" || !page_images.length) return;
+    const side = _bottom_arrow_hit(x, y);
+    if (side === "left") { _step_page(-1); _update_strip_density(); return; }
+    if (side === "right") { _step_page(1); _update_strip_density(); return; }
+    if (_mouse_on_image(x, y) && strip_visible) { _set_strip_from_display_y(y); _update_strip_density(); }
+  } else if (e.button === 1) {                       // <Button-2>
+    e.preventDefault();
+    _on_right_click(x, y);
+  }
+});
+function _on_right_click(x, y) {                     // <Button-3>
+  if (mode !== "reading") return;
+  if (!page_images.length) return;
+  strip_visible = !strip_visible;
+  if (strip_visible && _mouse_on_image(x, y)) { _set_strip_from_display_y(y); _update_strip_density(); }
+  _render_light();
+}
+const b1up = () => { b1down = false; };
+cv.addEventListener("pointerup", b1up);
+cv.addEventListener("pointercancel", b1up);
+// jobb gomb: a böngésző helyimenü-eseménye minden eszközön megbízhatóan jön (egér, touchpad, Ctrl+kattintás, hosszú érintés)
+cv.addEventListener("contextmenu", (e) => { e.preventDefault(); b1down = false; const [x, y] = evPos(e); _on_right_click(x, y); });
+document.addEventListener("contextmenu", (e) => e.preventDefault());
+cv.addEventListener("auxclick", (e) => e.preventDefault());
+cv.addEventListener("pointerleave", () => { if (b1down) return; audio_set_active(false); _draw_overlays(); });   // <Leave>
+cv.tabIndex = 0; cv.style.outline = "none";
+window.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") { e.preventDefault(); _step_page(-1); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); _step_page(1); }
+  else if (e.key === "Escape" && window.parent !== window) window.parent.postMessage({ type: "app-escape" }, location.origin);
+});
+
+layout();
+</script>
+</body>
+</html>

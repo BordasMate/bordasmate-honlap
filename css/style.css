@@ -318,3 +318,197 @@ a.crumb:focus-visible, .crumb-group a:focus-visible { outline: 2px solid var(--m
   .crumb-home { font-size: 12px; padding-left: 8px; }
   .crumb-here { font-size: 17px; }
 }
+
+/* ---------- beágyazott interaktív művek ---------- */
+
+.app-stage {
+  position: relative;
+  margin: 0 0 1.4em;
+  aspect-ratio: 16 / 10;
+  background: #000;
+  border: 1px solid color-mix(in srgb, var(--mono-tint, #9aa3b5) 45%, transparent);
+}
+.app-stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+.app-full {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  padding: .35em .8em;
+  border: 1px solid rgba(255, 255, 255, .35);
+  background: rgba(0, 0, 0, .7);
+  color: #eee;
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.app-full:hover { background: rgba(0, 0, 0, .9); border-color: #fff; }
+.app-stage.is-full {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  margin: 0;
+  aspect-ratio: auto;
+  border: 0;
+}
+.app-stage.is-full { height: auto !important; }
+/* beágyazott programnál a panel szinte teljes egészében a programé */
+#panel.has-app { padding: 10px 10px 28px; }
+#panel.has-app::before { margin: -10px 0 0 -10px; }
+#panel.has-app > :not(.app-stage) { margin-left: clamp(6px, 2vw, 30px); margin-right: clamp(6px, 2vw, 30px); }
+.app-stage.is-full .app-full { top: 10px; right: 10px; bottom: auto; }
+html.app-open #crumbs, html.app-open #cells, html.app-open .site-foot { visibility: hidden; }
+
+/* ---------- folyóiratszámok (PDF-olvasó) ---------- */
+
+.issues {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 18px 14px;
+  margin: .9em 0 1.6em;
+}
+.issue {
+  display: flex;
+  flex-direction: column;
+  gap: .35em;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.issue-cover {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1.414;
+  overflow: hidden;
+  background: #111317;
+  border: 1px solid color-mix(in srgb, var(--mono-tint, #9aa3b5) 35%, transparent);
+  transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+}
+.issue-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.issue-ph {
+  position: absolute; inset: 0; display: flex; align-items: flex-end; padding: .6em;
+  font-family: var(--display); font-weight: 700; font-size: .95em; line-height: 1.1; letter-spacing: .02em;
+  color: var(--mono-tint, #cfd3dc);
+  background: repeating-linear-gradient(135deg, rgba(255,255,255,.03) 0 6px, transparent 6px 12px);
+}
+.issue:hover .issue-cover, .issue:focus-visible .issue-cover {
+  transform: translateY(-3px);
+  border-color: var(--mono-tint, #cfd3dc);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .55);
+}
+.issue-title { font-family: var(--display); font-size: .78em; font-weight: 650; letter-spacing: .06em; line-height: 1.25; }
+.issue-note { font-size: .78em; color: var(--text-dim); line-height: 1.3; margin-top: -.2em; }
+
+html.reader-open #crumbs, html.reader-open #cells, html.reader-open .site-foot, html.reader-open #panel { visibility: hidden; }
+
+.reader {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: rgba(5, 6, 9, .97);
+  color: var(--text);
+  font-family: var(--display);
+}
+.rd-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px 8px 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--mono-tint, #9aa3b5) 30%, transparent);
+  background: rgba(0, 0, 0, .55);
+  min-height: 52px;
+  flex-wrap: wrap;
+}
+.rd-title { display: flex; align-items: baseline; gap: .8em; min-width: 0; flex: 1 1 200px; }
+.rd-title b { font-size: 15px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--mono-tint, #fff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-title span { font-family: var(--body); font-style: italic; font-size: 14px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rd-btn, .rd-issue, .rd-num {
+  height: 34px;
+  min-width: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, .22);
+  background: rgba(255, 255, 255, .04);
+  color: var(--text);
+  font: 600 14px var(--display);
+  letter-spacing: .04em;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.rd-btn:hover, .rd-issue:hover { border-color: var(--mono-tint, #fff); background: rgba(255, 255, 255, .09); }
+.rd-btn:disabled { opacity: .45; cursor: progress; }
+.rd-btn[hidden] { display: none; }
+.rd-zoomlabel { min-width: 62px; font-variant-numeric: tabular-nums; }
+.rd-issue { max-width: 190px; padding-right: 6px; }
+.rd-issue option { background: #111; color: #eee; }
+.rd-pages { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; font-variant-numeric: tabular-nums; font-size: 14px; color: var(--text-dim); }
+.rd-num { width: 76px; text-align: center; cursor: text; }
+.rd-close { font-size: 16px; }
+.rd-view {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+  display: grid;
+  place-items: center;
+  scrollbar-width: thin;
+  scrollbar-color: #5a5e66 transparent;
+}
+.rd-view.zoomed { place-items: start center; cursor: grab; }
+.rd-view.dragging { cursor: grabbing; user-select: none; }
+.rd-spreadbox { display: flex; gap: 2px; padding: 12px; }
+.rd-page { position: relative; background: #fff; box-shadow: 0 6px 40px rgba(0, 0, 0, .7); }
+.rd-page canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.rd-nav {
+  position: fixed;
+  top: 50%;
+  z-index: 2;
+  width: 52px;
+  height: 92px;
+  margin-top: -20px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  background: rgba(0, 0, 0, .45);
+  color: #fff;
+  font: 300 46px/1 var(--display);
+  cursor: pointer;
+  transition: opacity .2s, background .2s, border-color .2s;
+}
+.rd-nav:hover { background: rgba(0, 0, 0, .75); border-color: var(--mono-tint, #fff); }
+.rd-nav:disabled { opacity: 0; pointer-events: none; }
+.rd-prev { left: 10px; }
+.rd-next { right: 10px; }
+.rd-foot { padding: 6px 18px 10px; }
+.rd-slider { width: 100%; accent-color: var(--mono-tint, #cfd3dc); }
+.rd-status {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  padding: 12px 18px; background: rgba(0, 0, 0, .8); border: 1px solid rgba(255, 255, 255, .2);
+  font-size: 13px; letter-spacing: .08em; text-transform: uppercase; pointer-events: none;
+}
+.rd-status[hidden] { display: none; }
+@media (max-width: 640px) {
+  .rd-bar { padding: 6px 8px; gap: 6px; }
+  .rd-title { flex-basis: 100%; }
+  .rd-nav { width: 38px; height: 70px; font-size: 34px; opacity: .8; }
+  .rd-prev { left: 2px; } .rd-next { right: 2px; }
+  .rd-issue { max-width: 120px; }
+  .rd-spread { display: none; }
+}
+
+/* a PDF.js szövegrétege: a lapon a szöveg kijelölhető, másolható */
+.textLayer { position: absolute; text-align: initial; inset: 0; overflow: clip; opacity: 1; line-height: 1; -webkit-text-size-adjust: none; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; caret-color: CanvasText; z-index: 0; }
+.textLayer :is(span, br) { color: transparent; position: absolute; white-space: pre; cursor: text; transform-origin: 0% 0%; }
+.textLayer > :not(.markedContent), .textLayer .markedContent span:not(.markedContent) { z-index: 1; }
+.textLayer span.markedContent { top: 0; height: 0; }
+.textLayer span[role="img"] { user-select: none; cursor: default; }
+.textLayer ::selection { background: rgba(0, 90, 255, .28); }
+.textLayer br::selection { background: transparent; }
+.textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: 0; cursor: default; user-select: none; }

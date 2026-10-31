@@ -29,8 +29,9 @@ function applyContent(data) {
   applySettings(settings);
   const f = settings.fonts || {};
   const root = document.documentElement.style;
-  root.setProperty("--display", `"${f.display || "Syne"}", ${FONT_STACK.display}`);
-  root.setProperty("--body", `"${f.body || "Literata"}", ${FONT_STACK.body}`);
+  const stack = (fam, def) => (/Mono/.test(fam) ? "ui-monospace, Menlo, Consolas, monospace" : def);
+  root.setProperty("--display", `"${f.display || "Syne"}", ${stack(f.display || "", FONT_STACK.display)}`);
+  root.setProperty("--body", `"${f.body || "Literata"}", ${stack(f.body || "", FONT_STACK.body)}`);
   renderFooter();
   return Promise.race([
     Promise.all([document.fonts.load(`700 30px "${f.display || "Syne"}"`), document.fonts.load(`400 18px "${f.body || "Literata"}"`)]),
@@ -182,7 +183,12 @@ function sceneFor(r, W, H) {
     const { cat, sub, work } = r, t = tintOf(cat.palette), key = subKey(cat, sub);
     const panel = z.narrow
       ? (() => { const hh = (H * 0.54 - 12) / 2; return { x: W / 2, y: H - 12 - hh, hw: W / 2 - 12, hh, tint: t }; })()
-      : (() => { const hw = Math.min(400, W * 0.27); return { x: W - 24 - hw - Math.max(0, W * 0.08 - 40), y: H * 0.54, hw, hh: H * 0.4, tint: t }; })();
+      : (() => {
+        // beágyazott programnál szélesebb panel, hogy a mű a lehető legnagyobb keretet kapja
+        const hw = work.app ? Math.min(640, W * 0.36) : Math.min(400, W * 0.27);
+        const hh = work.app ? (H - top - 24) / 2 : H * 0.4;
+        return { x: W - 24 - hw - Math.max(0, W * (work.app ? 0.04 : 0.08) - 40), y: work.app ? top + hh : H * 0.54, hw, hh, tint: t };
+      })();
     // az alkategória összes műve együtt marad; az éppen megnyitott kiemelve
     const items = [
       ...(sub.works || []).map((w) => w === work
@@ -206,14 +212,29 @@ function sceneFor(r, W, H) {
   };
 }
 
+function appStage(w) {
+  return `<div class="app-stage" data-app="${esc(w.app)}">
+    <iframe src="${esc(w.app)}" title="${esc(w.title)}" allow="autoplay; fullscreen; microphone; camera; midi; clipboard-write" allowfullscreen></iframe>
+    <button class="app-full" type="button" aria-label="Teljes képernyő">Teljes képernyő ⤢</button>
+  </div>`;
+}
 function workBody(cat, sub, w) {
   let h = "";
+  if (w.app) h += appStage(w);   // a beágyazott program a panel tetején, a teljes látható magasságban
   h += `<h2 class="work-title">${esc(w.title)}</h2>`;
   if (w.meta) h += `<p class="meta">${esc(w.meta)}</p>`;
   if (w.image) h += `<figure class="figure"><img src="${esc(w.image)}" alt="${esc(w.title)}" loading="lazy"></figure>`;
   for (const p of w.about || []) h += `<p class="about">${esc(p)}</p>`;
   if (w.poem) h += `<div class="poem">${esc(w.poem)}</div>`;
   if (w.audio) h += `<audio class="audio" controls preload="none" src="${esc(w.audio)}"></audio>`;
+  if (w.issues?.length) {
+    h += `<h3 class="entries-title">${esc(w.issuesTitle || "Lapszámok")}</h3>`;
+    h += `<p class="entries-count">${w.issues.length} szám · kattints egy borítóra az olvasáshoz</p>`;
+    h += `<div class="issues">${w.issues.map((is, i) => `<button type="button" class="issue" data-issue="${i}" aria-label="${esc(is.title)} – megnyitás olvasásra">
+      <span class="issue-cover">${is.cover ? `<img src="${esc(is.cover)}" alt="" loading="lazy">` : `<span class="issue-ph">${esc(is.title)}</span>`}</span>
+      <span class="issue-title">${esc(is.title)}</span>${is.note ? `<span class="issue-note">${esc(is.note)}</span>` : ""}
+    </button>`).join("")}</div>`;
+  }
   if (w.embed) h += `<div class="embed"><iframe src="${esc(w.embed)}" title="${esc(w.title)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div>`;
   if (w.links?.length) h += `<ul class="links">${w.links.map((l) => `<li><a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join("")}</ul>`;
   if (w.entries?.length) {
@@ -289,7 +310,33 @@ function renderCrumbs(r) {
   el.innerHTML = c.map(item).join('<span class="crumb-sep" aria-hidden="true">›</span>');
 }
 
+/* ---------- PDF-olvasó (folyóiratszámok) ---------- */
+let reader = null;   // a betöltött reader.js modul
+const readerMod = () => import("./reader.js").then((m) => (reader = m));
+const szamParam = () => { if (HASH) return null; const q = new URLSearchParams(location.search); return q.has("szam") ? { i: +q.get("szam") - 1, p: +q.get("oldal") || 1 } : null; };
+function setSzamParam(i, p) {
+  if (HASH || PREVIEW) return;
+  const u = new URL(location.href);
+  if (i === null) { u.searchParams.delete("szam"); u.searchParams.delete("oldal"); }
+  else { u.searchParams.set("szam", i + 1); if (p > 1) u.searchParams.set("oldal", p); else u.searchParams.delete("oldal"); }
+  history.replaceState(history.state, "", u.pathname + u.search);
+}
+async function openIssue(work, i, page = 1) {
+  const issues = (work.issues || []).filter((x) => x && x.pdf);
+  const idx = issues.indexOf(work.issues[i]);
+  if (idx < 0) return;
+  if (org && org.pause) org.pause(true);   // a háttérgrafika olvasás közben szünetel
+  const m = await readerMod();
+  m.openReader({
+    issues, index: idx, page, workTitle: work.title,
+    onPage: (p) => setSzamParam(work.issues.indexOf(issues[idx]), p),
+    onClose: () => { setSzamParam(null); if (org && org.pause) org.pause(false); },
+  });
+}
+function closeIssue() { if (reader && reader.isOpen()) reader.closeReader(); }
+
 function render() {
+  document.querySelectorAll(".app-stage.is-full").forEach((st) => setAppFull(st, false));
   if (PREVIEW && window.parent !== window) window.parent.postMessage({ type: "bm-path", path: currentPath() }, location.origin);
   const r = resolve(currentPath());
   const W = window.innerWidth, H = window.innerHeight;
@@ -303,6 +350,7 @@ function render() {
   else cells.innerHTML = `<div class="fallback"><p class="fb-name">${esc(site.name)}</p><ul>${a11yLinks(r)}</ul></div>`;
 
   // szövegpanel
+  if (r.type !== "work" || currentPath() !== currentWorkKey) closeIssue();
   if (sc.panel) {
     const p = sc.panel, inset = 14;
     Object.assign(panelEl.style, {
@@ -312,17 +360,45 @@ function render() {
     const key = currentPath();
     if (key !== currentWorkKey) {
       currentWorkKey = key;
+      stopApps();
       panelEl.classList.remove("show");
       setTimeout(() => {
+        if (currentWorkKey !== key) return;          // közben máshová lépett a látogató
         panelEl.innerHTML = workBody(r.cat, r.sub, r.work);
+        panelEl.classList.toggle("has-app", !!r.work.app);
+        // megosztott link: ?szam=3&oldal=12 → a lapszám rögtön nyílik
+        const sz = szamParam();
+        if (sz && r.work.issues?.[sz.i]) openIssue(r.work, sz.i, sz.p);
         panelEl.scrollTop = 0;
+        fitAppStage();
         panelEl.classList.add("show");
       }, panelEl.innerHTML ? 260 : 420);
-    }
+    } else fitAppStage();
   } else {
     currentWorkKey = null;
+    stopApps();
     panelEl.classList.remove("show");
   }
+}
+
+// a beágyazott programok csak a saját oldalukon futnak: máshová lépve azonnal leállnak
+// (a keretet a tartalmával együtt eltávolítjuk, így hang és számítás is megszűnik)
+function stopApps() {
+  panelEl.querySelectorAll(".app-stage").forEach((st) => {
+    if (st.classList.contains("is-full")) setAppFull(st, false);
+    const f = st.querySelector("iframe");
+    if (f) { try { f.src = "about:blank"; } catch (e) {} f.remove(); }
+    st.remove();
+  });
+}
+// a program kerete kitölti a panel látható magasságát
+function fitAppStage() {
+  const st = panelEl.querySelector(".app-stage");
+  if (!st || st.classList.contains("is-full")) return;
+  const cs = getComputedStyle(panelEl);
+  const h = panelEl.clientHeight - st.offsetTop - parseFloat(cs.paddingBottom) + 8;
+  st.style.aspectRatio = "auto";
+  st.style.height = Math.max(240, Math.round(h)) + "px";
 }
 
 function go(path) {
@@ -331,7 +407,30 @@ function go(path) {
   else { history.pushState(null, "", path); render(); }
 }
 
+// interaktív mű teljes képernyőn: a háttérgrafika ilyenkor szünetel, hogy a mű kapja a gép erejét
+function setAppFull(stage, on) {
+  stage.classList.toggle("is-full", on);
+  document.documentElement.classList.toggle("app-open", on);
+  stage.querySelector(".app-full").textContent = on ? "Bezárás ✕" : "Teljes képernyő ⤢";
+  if (org && org.pause) org.pause(on);
+  if (on) stage.querySelector("iframe").focus();
+  else fitAppStage();
+}
+document.addEventListener("keydown", (e) => {
+  const st = document.querySelector(".app-stage.is-full");
+  if (st && e.key === "Escape") setAppFull(st, false);
+});
+// a beágyazott programon belül lenyomott Esc is bezárja a teljes képernyőt
+window.addEventListener("message", (e) => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== "app-escape") return;
+  const st = document.querySelector(".app-stage.is-full");
+  if (st) setAppFull(st, false);
+});
 document.addEventListener("click", (e) => {
+  const iss = e.target.closest(".issue[data-issue]");
+  if (iss) { const r = resolve(currentPath()); if (r.type === "work") openIssue(r.work, +iss.dataset.issue); return; }
+  const fb = e.target.closest(".app-full");
+  if (fb) { const st = fb.closest(".app-stage"); setAppFull(st, !st.classList.contains("is-full")); return; }
   const a = e.target.closest("a");
   if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   const href = a.getAttribute("href");

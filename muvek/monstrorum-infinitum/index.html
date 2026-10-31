@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monstrorum Infinitum — Bordás Máté – Mezei Gábor, 2025</title>
+<style>
+  /* Bordás Máté – Mezei Gábor: Monstrorum Infinitum (2025)
+     Az eredeti Python/Tkinter/pygame program (bordas_mezei_monstinf.py) böngészős átirata.
+     Minden szöveg, időzítés, betűméret, elhelyezés és hangkezelés az eredeti kódból. */
+  @font-face { font-family: "BrutalistMono"; src: url("BrutalistMono.ttf") format("truetype"); font-display: block; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; background: #000; }
+  canvas { display: block; }
+  /* tk.Button(text="Leállítás!", bg="black", fg="white"), place(relx=.95, rely=.95, anchor="se") */
+  #quit {
+    position: absolute;
+    transform: translate(-100%, -100%);
+    background: #000; color: #fff;
+    font: 9pt "Segoe UI", system-ui, sans-serif;
+    padding: 3px 7px;
+    border: 1px solid #a0a0a0;
+    border-radius: 0;
+    cursor: default;
+  }
+  #quit:active { border-color: #fff; }
+  #start {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #000; color: #fff;
+    font: 22px "BrutalistMono", monospace;
+    cursor: pointer; border: 0; width: 100%;
+  }
+  #start span { border-bottom: 1px solid #555; padding-bottom: 4px; }
+  #start[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c"></canvas>
+  <button id="quit" type="button">Leállítás!</button>
+</div>
+<button id="start" type="button" aria-label="Indítás"><span>▶ Monstrorum Infinitum</span></button>
+<script>
+"use strict";
+
+// ---- az eredeti program adatai ----------------------------------------------
+const vers_sorok = [
+  "fekete törzse szárnyas", "szíve sűrűn fájdalmas", "törzsén feje", "szárnyai elevenek",
+  "fájdalma osztható de bonthatatlan", "osztott közepén szív", "osztott kétszárnyas darabja ugyanoly súlyos",
+  "törzse merev", "fekete törzse eleven kétfelé metszve",
+  "kínosan mozduló fejre kötve hathatós orvosság szívhasadás ellen", "a fejnek sűrű sajgásában",
+  "szíve mind egy és oszthatatlan", "lábas", "szárnyas", "az ég lakója", "fészket kedvvel rak fák magasába",
+  "tojásait megeszi", "lába kemény", "fás", "nyaka könnyen törik", "inas", "szálkás", "nyaka végében csontkúp",
+  "légutai hurutosak", "gyomra szagos", "belei természetéről tudni nem tud", "hasat tisztít", "jó vért csinál",
+  "hat vérhas ellen", "hat nyers has ellen", "hat nyálas has ellen", "erősen édes", "saját vize ízletes",
+  "saját nedve ízletes", "saját vére ízletes", "belső része hidegítő", "húsa egyaránt melegítő",
+  "húsa szárasztó", "igen szorító", "bő vízben fő", "halkan sír", "sósan sír", "belsőbbik váza puha",
+  "bőrébe szőr nő", "szőrének tüszői összetartják", "szőrének tüszői megmozdítják", "teste lassú",
+  "ideje nem telik", "sötétben lélegzik", "nap fényében nem mozdul", "bőre hideg", "húsa hideg", "nehéz",
+  "nyálkás", "kemény", "ásvány", "só", "sáros moha", "a hasban vizes kő vagyon", "hasra csúsztatva napot könnyít",
+  "sötétben vizet indít", "sötétben követ vesz", "követ vesz", "a kő a testnek súlya és fájdalma", "pikkelyes",
+  "emlős", "csillogása fémes", "fémes pikkelyei sima hasát borítják", "hasán fekszik", "fogazata szúrós",
+  "fogazata nő", "fogazata törik", "fogazata meggyógyul", "fogazata réseiben más fogak", "szőre alatt más szőr",
+  "végtagjai mellett más végtagok", "háti úszóját perzselve szőrét veszti", "porrá törve", "bő lében",
+  "túl bőséges bőrét szűkebbre behúzza", "az iszonyú álmot elsimítja", "ha e porból késhegynyit iszik",
+  "visszafekszik helyére", "az iszonyú álmot szintén megszűkíti", "fogai lazulnak", "harapása lazul",
+  "álma fémes víz", "sima", "pikkelyes siklású", "álma pikkelyes siklású", "álma sima",
+  "az álom reggelre hasában végigér", "bőrében végigér", "bőre pikkelytelen", "hártyás végtagjai csökevényesek",
+  "végtagjainak minden vékonyodó ága estére több és több helyütt megtörik", "átlátszik", "összecsuklik",
+  "estére hasán bőre elvékonyul", "zöld rostjai mozdulatlanok mind a mélysötétben", "hasbőre kifakad a fényben",
+  "növekedni kezd", "ágain levél", "növekvő ágai kiegyenesednek", "egyenes ágai napsütésben át nem láthatók",
+  "egyenes ágai párosan egymáshoz hasonulnak", "egyenes ágai állnak a sekély fehérségben", "ágai tetején fészkek",
+  "a fészkekben évelő pikkelyesek", "gyakorta levedlett első bőrök", "folytatás bőr alatt", "torka felfúvódott",
+  "felső ajka egyenes", "alsó ajka teknős", "ajkai együtt csőrszerűek", "a földhöz szájas felén csatlakozik",
+  "szájas feléből gyökerek nőnek", "szárai csupaszok vagy pikkelyesek", "törzse tojáskerek", "törzse repedéses",
+  "szárai középtájt törzsébe futnak", "körülötte megbillen az erdő", "kapaszkodik belé a rohanásban",
+  "víz és ég természetű", "mint egy csont a vizes földben", "úgy áll", "a földön kívül megrothad",
+  "csontján húsa éget", "hűs eső fűszeres levében húsa mar", "csontja szárad", "ha hét hétig áll benne",
+  "vize sós", "húsa véres levet ereszt", "megbüdösödik", "nyeléskor csípi", "első könnye leered",
+  "sós az ég leve árad",
+];
+// a hangfájlok és pontos hosszuk (másodperc) az eredeti WAV-okból – a pygame Sound.get_length() értékei
+const sound_files = [
+  ["s4", 6.288], ["s8", 3.144021], ["s9", 5.455563], ["s10", 3.144021], ["s12", 3.144021], ["s17", 48.000021],
+  ["s19", 7.859979], ["s20", 16.0], ["s21", 9.0], ["s22", 9.264], ["s23", 29.538479], ["s24", 18.461563],
+];
+const MAX_LINES = 12;
+const NUM_CHANNELS = 8;                       // pygame.mixer alapértelmezett csatornaszáma
+// Pillow ImageFont.truetype(BrutalistMono, méret): az "la" (bal–felső ascender) horgony alapvonala
+const FONT = { small: [16, 15], normal: [22, 21], title: [28, 26] };   // [méret px, ascent px]
+const MULTILINE_SPACING_16 = 15 + 4;          // Pillow: textbbox("A")[3] + spacing(4)
+
+// ---- véletlen (Python random.choice / randint megfelelői) --------------------
+const choice = (a) => a[Math.floor(Math.random() * a.length)];
+const randint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+// ---- elrendezés: a program teljes képernyőn fut; kisebb keretben arányosan kicsinyítve ----
+const REF_W = 1600, REF_H = 900;
+const stage = document.getElementById("stage");
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+const quitBtn = document.getElementById("quit");
+let width = 0, height = 0;
+function layout() {
+  const cw = window.innerWidth, ch = window.innerHeight;
+  const s = Math.min(1, cw / REF_W, ch / REF_H);
+  width = Math.round(cw / s); height = Math.round(ch / s);
+  stage.style.width = width + "px"; stage.style.height = height + "px";
+  stage.style.transform = `scale(${s})`;
+  const dpr = (window.devicePixelRatio || 1) * s;
+  canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
+  canvas.style.width = width + "px"; canvas.style.height = height + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  quitBtn.style.left = width * 0.95 + "px"; quitBtn.style.top = height * 0.95 + "px";
+  update_text();
+}
+window.addEventListener("resize", layout);
+
+// ---- szöveg (App.add_line / type_next_char / update_text) --------------------
+let lines = [], current_line = "", current_text = "";
+let timers = new Set();
+const after = (ms, fn) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); };
+
+function add_line() {
+  const left = choice(vers_sorok), right = choice(vers_sorok);
+  const punct1 = choice([".", ","]), punct2 = choice([".", ","]);
+  current_line = left + punct1 + " " + right + punct2;
+  current_text = "";
+  type_next_char();
+}
+function type_next_char() {
+  if (current_text.length < current_line.length) {
+    current_text += current_line[current_text.length];
+    update_text();
+    after(randint(40, 120), type_next_char);
+  } else {
+    lines.push(current_line);
+    if (lines.length > MAX_LINES) lines = lines.slice(-MAX_LINES);
+    after(randint(600, 1200), add_line);
+  }
+}
+function text(x, y, s, [size, ascent], fill) {
+  ctx.font = `${size}px BrutalistMono`;
+  ctx.fillStyle = fill;
+  ctx.fillText(s, x, y + ascent);
+}
+function update_text() {
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 0, width, height);
+  ctx.textBaseline = "alphabetic";
+  text(20, 20, "Bordás Máté – Mezei Gábor", FONT.small, "white");
+  text(20, 50, "Monstrorum Infinitum", FONT.title, "white");
+  text(20, 90, 'Mezei Gábor "natúr öntvény" című kötetének', FONT.small, "gray");
+  text(20, 90 + MULTILINE_SPACING_16, '"monstrorum historia" ciklusa alapján.', FONT.small, "gray");
+  const margin_left = 500;
+  const y_start = Math.floor(height / 2) - Math.floor(((lines.length + 1) * 20) / 2);
+  lines.forEach((line, i) => text(margin_left, y_start + i * 24, line, FONT.normal, "white"));
+  text(margin_left, y_start + lines.length * 24, current_text, FONT.normal, "white");
+}
+
+// ---- hang (pygame.mixer: 8 csatorna, find_channel(True)) ---------------------
+let ac = null, buffers = {}, channels = [], running = false;
+async function loadSounds() {
+  ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+  await Promise.all(sound_files.map(async ([name]) => {
+    if (buffers[name]) return;
+    const data = await (await fetch(`hang/${name}.mp3`)).arrayBuffer();
+    buffers[name] = await new Promise((ok, err) => ac.decodeAudioData(data, ok, err));
+  }));
+}
+function find_channel() {
+  const now = ac.currentTime;
+  for (let i = 0; i < NUM_CHANNELS; i++) if (!channels[i] || channels[i].end <= now) return i;
+  // force=True: a legrégebben szóló csatorna leállítva
+  let oldest = 0;
+  for (let i = 1; i < NUM_CHANNELS; i++) if (channels[i].start < channels[oldest].start) oldest = i;
+  try { channels[oldest].src.stop(); } catch {}
+  return oldest;
+}
+function play_random_sound() {
+  if (!running) return;
+  try {
+    const [name, length] = choice(sound_files);
+    const ch = find_channel();
+    const src = ac.createBufferSource();
+    src.buffer = buffers[name];
+    src.connect(ac.destination);
+    const start = ac.currentTime;
+    src.start(start);
+    channels[ch] = { src, start, end: start + length };
+    after(Math.trunc(length * 400), play_random_sound);
+  } catch (e) { console.log("Hiba: " + e); }
+}
+
+// ---- indítás / leállítás ----------------------------------------------------
+const startBtn = document.getElementById("start");
+async function start() {
+  startBtn.hidden = true;
+  await document.fonts.load("22px BrutalistMono");
+  await loadSounds();
+  if (ac.state === "suspended") await ac.resume();
+  lines = []; current_line = ""; current_text = "";
+  running = true;
+  layout();
+  add_line();
+  play_random_sound();
+}
+function stop() {   // self.destroy: a program bezárul
+  running = false;
+  timers.forEach(clearTimeout); timers.clear();
+  channels.forEach((c) => { try { c && c.src.stop(); } catch {} });
+  channels = [];
+  lines = []; current_text = "";
+  ctx.fillStyle = "black"; ctx.fillRect(0, 0, width, height);
+  startBtn.hidden = false;
+}
+startBtn.addEventListener("click", start);
+quitBtn.addEventListener("click", stop);
+document.addEventListener("visibilitychange", () => { if (ac && running) document.hidden ? ac.suspend() : ac.resume(); });
+
+document.fonts.load("22px BrutalistMono").then(layout);
+layout();
+// a hangfájlok előtöltése már az indítás előtt (dekódolás csak kattintás után)
+sound_files.forEach(([n]) => fetch(`hang/${n}.mp3`).catch(() => {}));
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && window.parent !== window) window.parent.postMessage({ type: "app-escape" }, location.origin); });
+</script>
+</body>
+</html>
