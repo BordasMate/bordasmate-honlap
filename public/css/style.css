@@ -61,6 +61,10 @@ a.cell-label:focus-visible { box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); }
 /* a nyitóoldal pontfelhő-betűi: a HTML-szöveg láthatatlan, csak kattintható és felolvasható */
 .cell-label.pc, a.cell-label.pc:hover, a.cell-label.pc:focus-visible { color: transparent; text-shadow: none; }
 .cell-label.pc.glitch { animation: none; translate: none; }
+a.cell-label.pc { pointer-events: none; }   /* a betűkre a vászon találatvizsgálata figyel (a betűk dobozára) */
+/* a főmenü almenüi: a cím csak rámutatáskor (vagy billentyűvel kijelölve) jelenik meg */
+.cell-label.peek:not(.reveal):not(:focus-visible) { color: transparent; text-shadow: none; }
+.cell-label.peek:not(.reveal).glitch { animation: none; }
 /* „blob tracking” réteg a pontfelhő fölött */
 #blobs { position: fixed; inset: 0; pointer-events: none; display: block; }
 html.app-open #blobs, html.reader-open #blobs { visibility: hidden; }
@@ -518,3 +522,18 @@ html.reader-open #crumbs, html.reader-open #cells, html.reader-open .site-foot, 
 .textLayer ::selection { background: rgba(0, 90, 255, .28); }
 .textLayer br::selection { background: transparent; }
 .textLayer .endOfContent { display: block; position: absolute; inset: 100% 0 0; z-index: 0; cursor: default; user-select: none; }
+
+/* ---------- közlések szövege a helyén (versek, fordítások) ---------- */
+.e-read {
+  display: inline-block; justify-self: start; align-self: flex-start; width: fit-content; margin-top: .45em; padding: .28em .8em;
+  border: 1px solid color-mix(in srgb, var(--mono-tint, #cfd3dc) 60%, transparent); border-radius: 2px;
+  background: transparent; color: var(--mono-tint, #e6e6e6);
+  font: 650 .72em var(--display); letter-spacing: .16em; text-transform: uppercase; cursor: pointer;
+}
+.e-read:hover, .e-read[aria-expanded="true"] { background: color-mix(in srgb, var(--mono-tint, #cfd3dc) 16%, transparent); }
+.e-text { margin: 1.1em 0 .6em; padding: .2em 0 .2em 1.1em; border-left: 2px solid color-mix(in srgb, var(--mono-tint, #cfd3dc) 55%, transparent); }
+.e-poem + .e-poem { margin-top: 2.2em; }
+.e-poem h5 { margin: 0 0 .8em; font: 700 .86em var(--display); letter-spacing: .06em; color: var(--text); }
+.e-poem-body { white-space: pre-wrap; font-family: var(--body); font-size: 1.02em; line-height: 1.62; color: var(--text); overflow-wrap: anywhere; }
+.e-src { margin: 1.6em 0 0; font-size: .78em; color: var(--text-dim); }
+.e-src a { color: var(--text-dim); }

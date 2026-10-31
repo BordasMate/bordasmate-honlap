@@ -459,7 +459,7 @@ export function createLidar(gl) {
       const k = Math.abs(x2 - x) / 10 || 1;
       const rx = b.ax * k * 0.98, rz = b.ay * k * 1.2;
       // a pontfelhő-betűk alatt csak alacsony halom marad, a betűk fölötte lebegnek
-      const h = (Math.min(rx, rz) * 0.95 * L.relief + 14) * (b.cloud ? 0.3 : 1);
+      const h = Math.min(rx, rz) * 0.95 * L.relief + 14;
       const lift = 6 + Math.sin(s.time * (0.8 + b.seed * 0.5) + b.seed * 20) * 4;
       C.set([x, z, rx, rz], i * 4);
       D.set([h, lift, b.hover, b.seed], i * 4);
@@ -491,7 +491,22 @@ export function createLidar(gl) {
       Z = norm(add(mul(Z, cp), mul(U, -sp)));
       U = U2;
       const thick = c.h * k * 0.32;
-      const O = [w.x, w.lift + w.h * 0.6 + (c.h * 0.5) * k * 0.8, w.z];
+      // a felirat a saját halmaza (a kategória és csak hozzá tartozó almenüi) fölött lebeg;
+      // ha az egér egy almenüjén van, feljebb csúszik, hogy ne takarja az amőbát
+      const mem = s.cells.filter((o) => o !== b && o.world && o.mask === b.mask && o.alpha > 0.05);
+      let cx = w.x, cz = w.z, top = w.lift + w.h;
+      mem.forEach((o) => { cx += o.world.x; cz += o.world.z; top = Math.max(top, o.world.lift + o.world.h * 0.8); });
+      cx /= mem.length + 1; cz /= mem.length + 1;
+      let O = [cx, top + (c.h * 0.5) * k * 0.6 + (b.raise || 0) * c.h * k * 1.15, cz];
+      // a képen belül marad (vízszintesen és felül)
+      const proj = (x, y) => { const p = add(add(O, mul(R, x * k)), mul(U, -y * k)); return toScreen(p[0], p[1], p[2]); };
+      const mx = 14, my = s.topInset || 44;
+      const l = proj(-c.w / 2, 0), r2 = proj(c.w / 2, 0);
+      let dx = 0;
+      if (l[0] < mx) dx = mx - l[0]; else if (r2[0] > s.W - mx) dx = s.W - mx - r2[0];
+      if (dx) O = add(O, mul(R, dx * k));
+      const tp = proj(0, -c.h / 2);
+      if (tp[1] < my) O = add(O, mul(U, -(my - tp[1]) * k));
       TO.set([O[0], O[1], O[2], k], i * 4);
       TR.set(R, i * 3); TU.set(U, i * 3); TZ.set(Z, i * 3);
       TP.set([c.w / 2, c.h / 2, thick, c.step * k * 1.3], i * 4);

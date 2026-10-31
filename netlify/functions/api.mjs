@@ -7,6 +7,7 @@
 //   GET  /api/history             az utolsó mentések listája (jelszó kell)
 //   GET  /api/history/<kulcs>     egy korábbi mentés (jelszó kell)
 //   POST /api/media?name=<fájl>   kép- vagy hangfájl feltöltése (jelszó kell)
+//   POST /api/import              egy közlés szövegének betöltése a forrásból (weboldal vagy PDF; jelszó kell)
 //   GET  /api/media/<fájl>        a feltöltött fájl
 //
 //   Nagy dokumentumok (pl. folyóiratszámok PDF-je) darabokban – a Netlify egy kérésben legfeljebb ~6 MB-ot enged:
@@ -21,6 +22,7 @@
 
 import { getStore } from "@netlify/blobs";
 import { createHash, timingSafeEqual } from "node:crypto";
+import { importText } from "../lib/textimport.mjs";
 
 const HISTORY_KEEP = 40;
 const MAX_CONTENT = 3 * 1024 * 1024;
@@ -135,6 +137,18 @@ export default async (req) => {
       const r = await media.getWithMetadata(name, { type: "arrayBuffer" });
       if (!r) return fail(404, "Nincs ilyen fájl.");
       return new Response(r.data, { headers: { "content-type": r.metadata?.type || "application/octet-stream", "cache-control": "public, max-age=31536000, immutable" } });
+    }
+
+    if (path === "/import" && req.method === "POST") {
+      const a = await authorized(req);
+      if (!a.ok) return fail(a.status, a.message);
+      let body;
+      try { body = await req.json(); } catch { return fail(400, "Hibás kérés."); }
+      try {
+        const titles = Array.isArray(body.titles) ? body.titles.map(String).slice(0, 40) : [];
+        const names = Array.isArray(body.names) && body.names.length ? body.names.map(String).slice(0, 5) : ["bordás"];
+        return json(await importText({ url: String(body.url || ""), titles, names }));
+      } catch (err) { return fail(422, err.message || "A szöveg nem tölthető be."); }
     }
 
     /* ---------- nagy dokumentumok darabokban ---------- */

@@ -601,9 +601,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
         const cx = (x0 + x1) / 2 + jx, cy = (y0 + y1) / 2 + jy;
         cross(cx, cy, 3, acc, a * 0.9);
         pts.push([cx, cy]);
-        const conf = (0.86 + 0.13 * hashN(Math.floor(now / 700), id)).toFixed(2);
-        if (li % 2 === 0 || W >= 900) tag(x0 - pd + jx, y0 - pd + jy - 2, `#${pad2(id)} ${lt.ch}`, tint, a);
-        if (W >= 900 && li % 2 === 1) { oc.globalAlpha = a * 0.8; tag(x0 - pd + jx, y1 + pd + jy + 12, `${Math.round(cx)},${Math.round(cy)} ${conf}`, acc, a); oc.globalAlpha = 1; }
+        tag(x0 - pd + jx, y0 - pd + jy - 2, lt.ch, tint, a);
       });
       if (!isFinite(ux0)) return;
       // a betűközéppontokat összekötő vonal
@@ -613,8 +611,8 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       // a teljes szó: szaggatott keret, felirattal
       const m = 14;
       box(ux0 - m, uy0 - m, ux1 + m, uy1 + m, tint, { alpha: a * 0.6, corner: 12, dash: [3, 4] });
-      const area = Math.round((ux1 - ux0) * (uy1 - uy0));
-      tag(ux0 - m, uy1 + m + 13, `BLOB_${pad2(wi + 1)} ${b.cloud.lines.join(" ")}  A=${area}  N=${b.cloud.count}`, tint, a * 0.9);
+      tag(ux0 - m, uy1 + m + 13, b.cloud.lines.join(" "), tint, a * 0.9);
+      b.tbox = [ux0 - m, uy0 - m, ux1 + m, uy1 + m];
       centers.push([(ux0 + ux1) / 2, (uy0 + uy1) / 2, a]);
     });
     // a szavak között hosszú összekötő vonal, távolsággal
@@ -624,8 +622,13 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
         oc.strokeStyle = tint; oc.globalAlpha = Math.min(a0, a1) * 0.3; oc.setLineDash([2, 5]);
         oc.beginPath(); oc.moveTo(x0, y0); oc.lineTo(x1, y1); oc.stroke(); oc.setLineDash([]);
         oc.globalAlpha = 1;
-        tag((x0 + x1) / 2 - 24, (y0 + y1) / 2 - 6, `d=${Math.round(Math.hypot(x1 - x0, y1 - y0))}`, acc, Math.min(a0, a1) * 0.8);
       }
+    }
+    // --- az egérrel érintett almenü amőbája ---
+    const hb = hoverKey ? bodies.get(hoverKey) : null;
+    if (hb && !hb.pointText && hb.kind !== "drift" && hb.sx !== undefined && texts.length) {
+      const rx = hb.ax * 0.95, ry = hb.ay * 0.72, j = reduced ? 0 : (hashN(tk, 99) - 0.5) * 2;
+      box(hb.sx - rx + j, hb.sy - ry, hb.sx + rx + j, hb.sy + ry, acc, { alpha: 0.85 * Math.min(1, hb.hover * 1.5), corner: 10 });
     }
     // --- glitch közben: követődobozok a torzított részen ---
     if (gl8) {
@@ -637,23 +640,23 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
         const x = b.sx ?? b.x, y = b.sy ?? b.y;
         if (!inR(x, y) || b.alpha < 0.2 || b.cloud) continue;
         const r = b.kind === "drift" ? b.ax * 0.8 : Math.min(b.ax, b.ay) * 0.75;
-        found.push([x - r * 1.1, y - r * 0.8, x + r * 1.1, y + r * 0.8]);
+        // a címke az, amit a doboz jelöl: a sejt neve (a kristályoknál nincs)
+        found.push([x - r * 1.1, y - r * 0.8, x + r * 1.1, y + r * 0.8, b.kind === "drift" ? "" : (b.lines || []).join(" ")]);
       }
       const n = 5 + Math.floor(hashN(gl8.seed, 1) * 7);
       for (let i = 0; i < n; i++) {
         const w = 18 + hashN(gl8.seed + i, fk % 3) * 110, h = 14 + hashN(gl8.seed - i, fk % 4) * 70;
         const x = rx + hashN(gl8.seed, i * 2 + (fk % 5)) * Math.max(1, rw - w), y = ry + hashN(gl8.seed, i * 2 + 1 + (fk % 2)) * Math.max(1, rh - h);
-        found.push([x, y, x + w, y + h]);
+        found.push([x, y, x + w, y + h, ""]);
       }
       const cs = [];
-      found.forEach(([x0, y0, x1, y1], i) => {
+      found.forEach(([x0, y0, x1, y1, label], i) => {
         if (hashN(fk, i + gl8.seed) < 0.12) return;   // villódzó kiesés
         box(x0, y0, x1, y1, i % 3 === 0 ? acc : tint, { alpha: 0.85, corner: 5 });
         const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
         cross(cx, cy, 3, acc, 0.9);
         cs.push([cx, cy]);
-        tag(x0, y0 - 2, `ID ${pad2(Math.floor(hashN(gl8.seed, i) * 90) + 10)}`, tint, 0.95);
-        if (x1 - x0 > 60) tag(x0, y1 + 12, `${Math.round(cx)},${Math.round(cy)}`, acc, 0.8);
+        if (label) tag(x0, y0 - 2, label, tint, 0.95);
       });
       oc.strokeStyle = acc; oc.globalAlpha = 0.4; oc.beginPath();
       cs.forEach(([x, y], i) => (i ? oc.lineTo(x, y) : oc.moveTo(x, y))); oc.stroke(); oc.globalAlpha = 1;
@@ -760,7 +763,6 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
         ax = Math.max((it.minR || 0) * minScale, tw * g);
         ay = Math.max(th * g, ax / maxAsp, (it.minR || 0) * minScale * 0.7);
       }
-      if (it.pointText) { ax *= 0.76; ay *= 0.86; }
       return { ...it, text, lines, fs, ax, ay, st };
     };
     const P = scene.panel;
@@ -819,7 +821,9 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
         bodies.set(s.key, b);
       }
       Object.assign(b, {
-        kind: s.kind, tint: s.tint ?? 0, href: s.href || null, anchor: s.anchor || b.anchor0 || null, heavy: !!s.heavy, z: s.z ?? 0, active: !!s.active, pointText: !!s.pointText,
+        kind: s.kind, tint: s.tint ?? 0, href: s.href || null, anchor: s.anchor || b.anchor0 || null, heavy: !!s.heavy, z: s.z ?? 0, active: !!s.active, pointText: !!s.pointText, peek: !!s.peek,
+        // a nagy felirat legfeljebb a képernyő ~harmada (mobilon a szélessége) lehet
+        textFs: s.textSize ? s.textSize * Math.min(1, (W * (narrow ? 0.84 : 0.34)) / Math.max(1, textW(s.text, s.textSize, s.st.weight) * (1 + s.st.track))) : null,
         mask: (s.sets || []).reduce((m, k) => m | (1 << k), 0),
         tax: s.ax, tay: s.ay, dying: false, fs: s.fs, lines: s.lines, st: s.st,
       });
@@ -839,7 +843,8 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     b.el.classList.remove("gone");
     b.el.dataset.kind = b.kind;
     b.el.classList.toggle("active", !!b.active);
-    b.el.classList.toggle("pc", !!b.pointText);   // a felirat pontfelhőként látszik, a HTML-szöveg csak kattintható / felolvasható
+    b.el.classList.toggle("pc", !!b.pointText);   // a felirat pontfelhőként látszik, a HTML-szöveg csak felolvasható
+    b.el.classList.toggle("peek", !!b.peek);      // a cím csak rámutatáskor látszik
     if (b.href) b.el.setAttribute("href", b.href);
     b.el.style.fontSize = b.fs.toFixed(1) + "px";
     b.el.style.fontWeight = b.st.weight;
@@ -865,6 +870,10 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       b.ax += (b.tax - b.ax) * 0.09; b.ay += (b.tay - b.ay) * 0.09;
       b.hover += ((hoverKey === b.key ? 1 : b.active ? 0.65 : 0) - b.hover) * 0.12;
       b.rot += b.spin * dt * live;
+      if (b.peek && b.el) {
+        const on = hoverKey === b.key;
+        if (b._rev !== on) { b._rev = on; b.el.classList.toggle("reveal", on); }
+      }
       if (b.kind !== "drift" && b.el) {
         const op = Math.min(1, Math.max(0, (b.ax / (b.tax || b.ax || 1)) * 1.4 - 0.4));
         const o = b.dying ? "0" : op.toFixed(2);
@@ -872,6 +881,15 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       }
     }
     for (const b of [...list]) if (b.dying && b.ax < 1.5) { if (b.el) b.el.remove(); bodies.delete(b.key); }
+    // a nagy pontfelhő-felirat feljebb csúszik, ha az egér a halmaza valamelyik almenüjén van
+    const hov = hoverKey ? bodies.get(hoverKey) : null;
+    for (const b of list) {
+      if (!b.pointText) continue;
+      let tgt = 0;
+      if (hov && hov !== b && hov.kind !== "drift" && !hov.pointText && (hov.mask & b.mask)) tgt = 1;
+      else if (hov === b && (b.raise || 0) > 0.5) tgt = 1;   // a felcsúszott feliratra lépve fent marad
+      b.raise = (b.raise || 0) + (tgt - (b.raise || 0)) * (reduced ? 1 : 0.09);
+    }
 
     const content = list.filter((b) => b.kind !== "drift" && !b.dying);
     let gx = W / 2, gy = H / 2;
@@ -1033,7 +1051,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       b.alpha = alpha;
       b.kindCode = b.kind === "nav" ? 1 : b.kind === "center" || b.kind === "name" ? 2 : 0;
       b.cloud = b.pointText && b.lines && b.lines.length && !b.dying
-        ? makeTextCloud({ lines: b.lines, fs: b.fs, weight: b.st.weight, track: b.st.track, family: LOOK.displayFont, ver: fontVer, budget: [4200, 7000, 11000][tier.q] })
+        ? makeTextCloud({ lines: b.lines, fs: b.textFs || b.fs, weight: b.st.weight, track: b.st.track, family: LOOK.displayFont, ver: fontVer, budget: [4200, 7000, 11000][tier.q] })
         : null;
       cells.push(b);
     }
@@ -1062,7 +1080,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       },
       cells, gems, sets, ripples, pad: padPx(),
       tints: new Float32Array(TINT_DATA.flat()), glow: GLOW_DATA,
-      gemA: GEM_A, gemB: GEM_B, look: Ld, noise: noisePts, reduced,
+      gemA: GEM_A, gemB: GEM_B, look: Ld, noise: noisePts, reduced, topInset: 44,
     });
     drawBlobs(now, cells, gems);
     // a feliratok a vetített helyre
@@ -1171,10 +1189,20 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     let best = null, bf = 1;
     for (const b of bodies.values()) {
       if (b.ax < 2 || (b.kind === "drift" && Math.abs(b.z) > 0.3)) continue;
+      if (b.pointText) continue;
       const f = Math.hypot((x - (b.sx ?? b.x)) / b.ax, (y - (b.sy ?? b.y)) / b.ay);
       if (f < bf) { bf = f; best = b; }
     }
-    return best;
+    if (best) return best;
+    // a pontfelhő-felirat betűi (és alattuk a saját kupolája)
+    for (const b of bodies.values()) {
+      if (!b.pointText || b.dying) continue;
+      const t = b.tbox;
+      if (t && x > t[0] && x < t[2] && y > t[1] && y < t[3]) return b;
+      const w = b.world && lidar.toScreen(b.world.x, b.world.lift + b.world.h * 0.4, b.world.z);
+      if (w && Math.hypot((x - w[0]) / b.ax, (y - w[1]) / b.ay) < 1) return b;
+    }
+    return null;
   }
   window.addEventListener("pointermove", (e) => {
     if (e.pointerType === "mouse") {

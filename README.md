@@ -18,9 +18,10 @@ A felület egy valós időben számolt, LiDAR-szerű **pontfelhő 3D térben**:
   a két kontúr metszetében ülnek. Az egérrel ráállt sejt körül fényes gyűrű.
 - **Mélység:** lebegő pontkristályok a lap fölött, mögött és a kamera előtt,
   mélységélesség, lassan mozgó kamera, egérrel parallaxis.
-- **Főmenü:** csak a két halmaz neve (IRODALOM, ZENE), nagy, térbeli
-  pontfelhő-betűkkel, körülöttük „blob tracking” (számítógépes látás) stílusú
-  követődobozokkal, azonosítókkal és koordinátákkal. A név a bal felső sávban.
+- **Főmenü:** a két halmaz neve (IRODALOM, ZENE) nagy, térbeli pontfelhő-betűkkel,
+  „blob tracking” stílusú követődobozokkal; alattuk az almenük amőbái, amelyek
+  címe rámutatáskor jelenik meg (ilyenkor a nagy felirat feljebb csúszik).
+  A név a bal felső sávban.
 - **Glitch:** kb. 10 másodpercenként egy rövid sorozat, oldalváltáskor teljes
   képes glitch. **Színek:** a nyitóoldal színes, az almenük egyszínűek, de
   színesek (Irodalom réz, Zene kobalt, közös alkategóriák lila).
@@ -94,6 +95,21 @@ keretben futnak, a „Teljes képernyő” gombbal kinagyíthatók (Esc: vissza)
 
 A böngészők csak kattintás után engednek hangot, ezért a programok egy
 kattintással indulnak.
+
+## Versek, fordítások a honlapon olvashatóan
+
+A publikációs listák tételei (`entries`) szöveget is kaphatnak (`poems`: `title`,
+`text`). Ilyenkor a honlapon az „olvasás” gomb a helyén nyitja le a szöveget,
+eredeti sor- és versszaktördeléssel; az eredeti közlés kis forrásjelzésként
+marad meg.
+
+A szerkesztőben tételenként: **Szöveg a honlapon → Betöltés a forrásból**,
+vagy a lista fejlécében **Szövegek a forrásokból** (az összes linkes, még
+szöveg nélküli tételhez). A honlap szervere letölti a forrást (weboldalt vagy
+PDF-et), kiemeli a szöveget, és a tétel címei (pontosvesszővel elválasztva)
+szerint versekre bontja. A szövegmezőben minden vers egy „### Cím” sorral
+kezdődik. Betöltés után érdemes átnézni (szerzői jegyzet, más szerzők,
+oldalfejlécek), aztán menteni. Beszkennelt PDF-ből nem nyerhető ki szöveg.
 
 ## Folyóiratszámok – PDF-olvasó (pl. ROST)
 

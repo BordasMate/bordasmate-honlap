@@ -117,22 +117,27 @@ function setCenters(n, W, H, z, cy) {
 function sceneFor(r, W, H) {
   const z = sizes(W);
   if (r.type === "home") {
-    // a főmenüben csak a két fő halmaz neve: nagy, térbeli pontfelhő-betűk (a név a felső sávban)
+    // a főmenü: a két fő halmaz neve nagy, térbeli pontfelhő-betűkkel; alattuk az almenük amőbái,
+    // amelyeknek a címe csak akkor jelenik meg, ha az egér föléjük ér (a név a felső sávban)
     const t = tintOf(site.palette);
     const cats = site.categories;
-    const C = setCenters(cats.length, W, H, z, H * 0.58);
-    // az első szó (IRODALOM) hosszabb: a halmazok kicsit jobbra tolódnak, hogy ne lógjon ki a képből
-    if (cats.length === 2 && !z.narrow) { C[0].x = W * 0.35; C[1].x = W * 0.75; }
-    const big = z.narrow ? clamp(W / 7.2, 40, 60) : clamp(Math.min(W / 11, H / 6), 62, 140);
-    const items = cats.map((c, k) => ({
-      key: "/" + c.slug, label: c.title, href: link("/" + c.slug), kind: "center", tint: tintOf(c.palette),
-      size: big, minR: z.minChild * 1.2, sets: [k], nucleus: k, pointText: true,
-    }));
+    const C = setCenters(cats.length, W, H, z, H * 0.6);
+    if (cats.length === 2 && !z.narrow) { C[0].x = W * 0.32; C[1].x = W * 0.72; }
+    const big = z.narrow ? clamp(W / 8, 36, 54) : clamp(Math.min(W / 12.5, H / 7), 56, 118);
+    const items = [];
+    cats.forEach((c, k) => {
+      items.push({ key: "/" + c.slug, label: c.title, href: link("/" + c.slug), kind: "center", tint: tintOf(c.palette), size: z.center * 0.85, minR: z.minChild * 1.1, sets: [k], nucleus: k, pointText: true, textSize: big });
+      c.children.forEach((s) => items.push({ key: subKey(c, s), label: s.title, href: subHref(c, s), kind: "child", tint: tintOf(c.palette), size: z.child * 0.9, minR: z.minChild * 0.85, sets: [k], peek: true }));
+    });
+    shared.forEach((s) => {
+      const ks = s.in.map((slug) => cats.findIndex((c) => c.slug === slug)).filter((k) => k >= 0);
+      if (ks.length) items.push({ key: "~" + s.slug, label: s.title, href: subHref(cats[ks[0]], s), kind: "child", tint: 0, size: z.child * 0.9, minR: z.minChild * 0.9, sets: ks, peek: true });
+    });
     items.push(...drifters(t, W, true));
     return {
       title: site.name, h1: site.name, items,
       sets: cats.map((c, k) => ({ ...C[k], tint: tintOf(c.palette) })),
-      comp: { x: W / 2, y: H * 0.56 }, maxGrow: 0.92,
+      comp: { x: W / 2, y: H * 0.6 }, maxGrow: 1.1, topInset: z.narrow ? 120 : 150,
     };
   }
   // menükben: a menü neve a felső útvonalsávba kerül (Bordás Máté › Irodalom › …),
@@ -247,7 +252,10 @@ function workBody(cat, sub, w) {
         <span class="e-title">${esc(e.title || "")}</span>
         ${e.source ? `<span class="e-source">${esc(e.source)}</span>` : ""}
         ${e.note ? `<span class="e-note">${esc(e.note)}</span>` : ""}
-        ${e.link ? `<a class="e-link" href="${esc(e.link)}" target="_blank" rel="noopener">megnyitás ↗</a>` : ""}
+        ${e.poems?.length ? `<button type="button" class="e-read" aria-expanded="false">olvasás</button>
+          <div class="e-text" hidden>${e.poems.map((p) => `<section class="e-poem">${p.title ? `<h5>${esc(p.title)}</h5>` : ""}<div class="e-poem-body">${esc(p.text || "")}</div></section>`).join("")}
+          ${e.link ? `<p class="e-src">Első közlés: ${esc(e.source || "")} · <a href="${esc(e.link)}" target="_blank" rel="noopener">eredeti ↗</a></p>` : ""}</div>`
+          : e.link ? `<a class="e-link" href="${esc(e.link)}" target="_blank" rel="noopener">megnyitás ↗</a>` : ""}
       </li>`).join("")}</ul></section>`).join("");
   }
   return h;
@@ -425,6 +433,14 @@ window.addEventListener("message", (e) => {
   if (st) setAppFull(st, false);
 });
 document.addEventListener("click", (e) => {
+  // egy közlés szövege a helyén nyílik le (nem visz át másik oldalra)
+  const rd = e.target.closest(".e-read");
+  if (rd) {
+    const box = rd.nextElementSibling, open = box.hidden;
+    box.hidden = !open; rd.setAttribute("aria-expanded", String(open)); rd.textContent = open ? "bezárás" : "olvasás";
+    rd.closest("li").classList.toggle("reading", open);
+    return;
+  }
   const iss = e.target.closest(".issue[data-issue]");
   if (iss) { const r = resolve(currentPath()); if (r.type === "work") openIssue(r.work, +iss.dataset.issue); return; }
   const fb = e.target.closest(".app-full");
@@ -468,7 +484,7 @@ if (PREVIEW) {
   window.addEventListener("message", async (e) => {
     if (e.origin !== location.origin || !e.data) return;
     const m = e.data;
-    if (m.type === "bm-content") { currentWorkKey = null; await applyContent(m.content); render(); }
+    if (m.type === "bm-content" && m.content && m.content.site) { currentWorkKey = null; await applyContent(m.content); render(); }
     if (m.type === "bm-go" && m.path) go(link(m.path));
     if (m.type === "bm-glitch" && org) org.burst({ full: true, power: 1, dur: 600 });
   });

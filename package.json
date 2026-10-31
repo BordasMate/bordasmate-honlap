@@ -4,6 +4,9 @@
   "type": "module",
   "description": "Bordás Máté alkotói honlapja – statikus oldal + egy Netlify Function a szerkesztő mentéseihez",
   "dependencies": {
-    "@netlify/blobs": "10.7.13"
+    "@netlify/blobs": "10.7.13",
+    "@mozilla/readability": "0.6.0",
+    "linkedom": "0.18.14",
+    "unpdf": "2.1.0"
   }
 }

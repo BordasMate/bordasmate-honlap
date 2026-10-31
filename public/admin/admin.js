@@ -115,7 +115,7 @@ function goPreview(path) { if (path) postPreview({ type: "bm-go", path }); }
 
 window.addEventListener("message", (e) => {
   if (e.origin !== location.origin || !e.data) return;
-  if (e.data.type === "bm-ready") { previewReady = true; postPreview({ type: "bm-content", content: data }); }
+  if (e.data.type === "bm-ready") { previewReady = true; if (data) postPreview({ type: "bm-content", content: data }); }
   if (e.data.type === "bm-path") $("#preview-path").textContent = e.data.path;
 });
 
@@ -620,6 +620,38 @@ function linksEditor(w) {
   return group(h("h3", {}, "Hivatkozások", h("button.small", { onclick: () => { w.links.push({ label: "", href: "" }); draw(); } }, "+ hivatkozás")), box);
 }
 
+/* ---------------- a közlések szövege (versek, fordítások a honlapon olvashatóan) ---------------- */
+
+// a szövegmező formája: minden vers egy „### Cím” sorral kezdődik
+const poemsToText = (ps) => (ps || []).map((p) => `### ${p.title || ""}\n${p.text || ""}`).join("\n\n");
+function textToPoems(t) {
+  const parts = String(t || "").split(/^###[ \t]?(.*)$/m);
+  const out = [];
+  const body = (x) => String(x || "").replace(/^([ \t]*\n)+/, "").replace(/\s+$/, "");
+  if (body(parts[0])) out.push({ title: "", text: body(parts[0]) });
+  for (let i = 1; i < parts.length; i += 2) {
+    const p = { title: parts[i].trim(), text: body(parts[i + 1]) };
+    if (p.title || p.text) out.push(p);
+  }
+  return out;
+}
+// a közlés címéből a versek címei: „Szerző: Cím1; Cím2” → [Cím1, Cím2], és a szerző vezetékneve
+function entryTitles(en) {
+  let t = String(en.title || "");
+  let author = "";
+  const m = t.match(/^([^:;]{3,60}):\s+(.+)$/);
+  if (m && !/\d/.test(m[1])) { author = m[1].trim(); t = m[2]; }
+  const titles = t.split(/\s*;\s*/).map((x) => x.trim()).filter(Boolean);
+  const surname = author ? author.split(/\s+/).pop().toLowerCase() : "";
+  return { titles, names: ["bordás", surname].filter(Boolean) };
+}
+async function importEntry(en) {
+  if (!en.link) throw new Error("Ehhez a tételhez nincs forráslink.");
+  const { titles, names } = entryTitles(en);
+  const r = await withLogin(() => api("import", { method: "POST", body: JSON.stringify({ url: en.link, titles, names }), type: "application/json" }));
+  return r;
+}
+
 function entriesEditor(w) {
   w.entries = w.entries || [];
   const box = h("div.list");
@@ -636,12 +668,35 @@ function entriesEditor(w) {
         h("input", { value: en.source || "", placeholder: "Megjelenés (folyóirat, kötet, oldalszám)", oninput: (e) => { en.source = e.target.value; changed({ tree: false }); } }),
         h("div.two", {},
           h("input", { value: en.note || "", placeholder: "Címke", oninput: (e) => { en.note = e.target.value || undefined; changed({ tree: false }); } }),
-          h("input", { value: en.link || "", placeholder: "Link (https://…)", type: "url", oninput: (e) => { en.link = e.target.value || undefined; changed({ tree: false }); } }))),
+          h("input", { value: en.link || "", placeholder: "Link (https://…)", type: "url", oninput: (e) => { en.link = e.target.value || undefined; changed({ tree: false }); } })),
+        textBox(en)),
       h("div.ops", {},
         h("button.icon", { title: "Fel", onclick: () => { moveIn(w.entries, i, -1); changed({ tree: false }); draw(); } }, "↑"),
         h("button.icon", { title: "Le", onclick: () => { moveIn(w.entries, i, 1); changed({ tree: false }); draw(); } }, "↓"),
         h("button.icon", { title: "Törlés", onclick: () => { w.entries.splice(i, 1); changed(); draw(); } }, "✕")))));
   };
+  // a tétel szövege: lenyitható szerkesztő, betöltés a forrásból
+  function textBox(en) {
+    const n = (en.poems || []).length;
+    const ta = h("textarea.poems", { rows: 12, placeholder: "### Cím\nelső sor\nmásodik sor\n\núj versszak…\n\n### Következő vers címe\n…", value: poemsToText(en.poems),
+      oninput: (e) => { const ps = textToPoems(e.target.value); if (ps.length) en.poems = ps; else delete en.poems; head.textContent = label(); changed({ tree: false }); } });
+    const status = h("small.text-status", {}, "");
+    const label = () => (en.poems?.length ? `Szöveg a honlapon (${en.poems.length} vers) ▾` : "Szöveg a honlapon (nincs) ▾");
+    const head = h("button.small.text-toggle", { type: "button", onclick: () => { area.hidden = !area.hidden; } }, label());
+    const load = h("button.small", { type: "button", hidden: !en.link, onclick: async () => {
+      if (en.poems?.length && !confirm("Felülírod a meglevő szöveget a forrásból betöltöttel?")) return;
+      load.disabled = true; status.textContent = "Betöltés a forrásból…";
+      try {
+        const r = await importEntry(en);
+        en.poems = r.poems; ta.value = poemsToText(r.poems); head.textContent = label(); changed({ tree: false });
+        status.textContent = `Betöltve (${r.kind === "pdf" ? `PDF, ${r.keptPages}/${r.pages} oldal` : "weboldal"}; ${r.found} cím alapján bontva). Nézd át: töröld a nem odavaló részeket (szerzői jegyzet, más szerzők), aztán Mentés.`;
+      } catch (err) { status.textContent = "Nem sikerült: " + err.message; }
+      load.disabled = false;
+    } }, "Betöltés a forrásból");
+    const area = h("div.text-area", { hidden: true }, ta, h("div.text-ops", {}, load, status),
+      h("small", {}, "Minden vers egy „### Cím” sorral kezdődik; a sortörések és az üres sorok (versszakok) így jelennek meg a honlapon."));
+    return h("div.text-box", {}, head, area);
+  }
   draw();
   const bulk = h("textarea.mono", { rows: 5, placeholder: "2024 | Cím | Megjelenés | https://link | címke\n2023 | Másik cím | Folyóirat, 2023/5" });
   const add = () => {
@@ -660,7 +715,22 @@ function entriesEditor(w) {
   };
   return group(h("h3", {}, h("span", {}, "Tételek (lista)", count),
       h("span", {}, h("button.small", { onclick: () => { w.entries.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0)); changed({ tree: false }); draw(); } }, "Év szerint"), " ",
-        h("button.small", { onclick: () => { w.entries.unshift({ year: String(new Date().getFullYear()), title: "", source: "" }); changed(); draw(); } }, "+ tétel"))),
+        h("button.small", { onclick: () => { w.entries.unshift({ year: String(new Date().getFullYear()), title: "", source: "" }); changed(); draw(); } }, "+ tétel"), " ",
+        h("button.small", { title: "A forráslinkes, még szöveg nélküli tételek szövegének betöltése (egymás után)", onclick: async (e) => {
+          const todo = w.entries.filter((en) => en.link && !en.poems?.length);
+          if (!todo.length) { toast("Minden linkes tételnek van már szövege.", "ok"); return; }
+          if (!confirm(`${todo.length} tétel szövegét töltöm be a forrásokból. Utána érdemes mindet átnézni. Kezdhetem?`)) return;
+          if (!(await ensureLogin())) return;
+          const btn = e.target; btn.disabled = true;
+          let ok = 0; const bad = [];
+          for (let i = 0; i < todo.length; i++) {
+            btn.textContent = `Betöltés… ${i + 1}/${todo.length}`;
+            try { const r = await importEntry(todo[i]); todo[i].poems = r.poems; ok++; } catch (err) { bad.push(`${todo[i].title}: ${err.message}`); }
+          }
+          btn.disabled = false; btn.textContent = "Szövegek a forrásokból";
+          changed({ tree: false }); draw();
+          toast(`${ok} tétel szövege betöltve.${bad.length ? `<br>Nem sikerült (${bad.length}):<br>` + bad.slice(0, 6).map(esc).join("<br>") + (bad.length > 6 ? "<br>…" : "") : ""}<br>Nézd át őket, aztán Mentés.`, bad.length ? "err" : "ok", 14000);
+        } }, "Szövegek a forrásokból"))),
     textField("A lista fölötti cím (nem kötelező)", w.entriesTitle, (v) => { w.entriesTitle = v || undefined; changed({ tree: false }); }, { placeholder: "pl. A kötetről írták" }),
     box,
     h("details.bulk", {}, h("summary", {}, "Több tétel beillesztése egyszerre"),
