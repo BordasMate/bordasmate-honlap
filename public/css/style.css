@@ -58,6 +58,12 @@ a.cell-label:focus-visible { box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); }
 .cell-label[data-kind="nav"] { color: #d6d8dc; }
 .cell-label[data-kind="name"] { color: #f6f5f1; }
 .cell-label.gone { opacity: 0 !important; pointer-events: none; }
+/* a nyitóoldal pontfelhő-betűi: a HTML-szöveg láthatatlan, csak kattintható és felolvasható */
+.cell-label.pc, a.cell-label.pc:hover, a.cell-label.pc:focus-visible { color: transparent; text-shadow: none; }
+.cell-label.pc.glitch { animation: none; translate: none; }
+/* „blob tracking” réteg a pontfelhő fölött */
+#blobs { position: fixed; inset: 0; pointer-events: none; display: block; }
+html.app-open #blobs, html.reader-open #blobs { visibility: hidden; }
 
 /* glitch a feliratokon (rövid villanás, amikor a kép glitch-el) */
 .cell-label.glitch {
@@ -65,8 +71,8 @@ a.cell-label:focus-visible { box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); }
   translate: var(--gx, 4px) 0;
 }
 @keyframes label-glitch {
-  0%   { clip-path: inset(0 0 52% 0); text-shadow: -3px 0 rgba(255, 40, 190, .85), 3px 0 rgba(30, 220, 255, .85), 0 0 12px #000; }
-  50%  { clip-path: inset(38% 0 0 0); text-shadow: 4px 0 rgba(255, 40, 190, .85), -4px 0 rgba(30, 220, 255, .85), 0 0 12px #000; }
+  0%   { clip-path: inset(0 0 52% 0); text-shadow: -2px 0 rgba(255, 40, 190, .7), 2px 0 rgba(30, 220, 255, .7), 0 0 12px #000; }
+  50%  { clip-path: inset(38% 0 0 0); text-shadow: 2.5px 0 rgba(255, 40, 190, .7), -2.5px 0 rgba(30, 220, 255, .7), 0 0 12px #000; }
   100% { clip-path: inset(0 0 0 0);  text-shadow: -2px 0 rgba(255, 40, 190, .6), 2px 0 rgba(30, 220, 255, .6), 0 0 12px #000; }
 }
 html.mono .cell-label.glitch { animation-name: label-glitch-mono; }

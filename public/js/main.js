@@ -117,24 +117,22 @@ function setCenters(n, W, H, z, cy) {
 function sceneFor(r, W, H) {
   const z = sizes(W);
   if (r.type === "home") {
+    // a főmenüben csak a két fő halmaz neve: nagy, térbeli pontfelhő-betűk (a név a felső sávban)
     const t = tintOf(site.palette);
     const cats = site.categories;
-    const C = setCenters(cats.length, W, H, z, H * 0.6);
-    const items = [{ key: "/", label: site.name, kind: "name", tint: t, size: z.name * 0.72, minR: z.narrow ? 70 : 90 }];
-    cats.forEach((c, k) => {
-      items.push({ key: "/" + c.slug, label: c.title, href: link("/" + c.slug), kind: "center", tint: tintOf(c.palette), size: z.center * 0.85, minR: z.minChild * 1.1, sets: [k], nucleus: k });
-      c.children.forEach((s) => items.push({ key: subKey(c, s), label: s.title, href: subHref(c, s), kind: "child", tint: tintOf(c.palette), size: z.child * 0.9, minR: z.minChild * 0.85, sets: [k] }));
-    });
-    shared.forEach((s) => {
-      const ks = s.in.map((slug) => cats.findIndex((c) => c.slug === slug)).filter((k) => k >= 0);
-      if (ks.length) items.push({ key: "~" + s.slug, label: s.title, href: subHref(cats[ks[0]], s), kind: "child", tint: 0, size: z.child * 0.9, minR: z.minChild * 0.9, sets: ks });
-    });
+    const C = setCenters(cats.length, W, H, z, H * 0.58);
+    // az első szó (IRODALOM) hosszabb: a halmazok kicsit jobbra tolódnak, hogy ne lógjon ki a képből
+    if (cats.length === 2 && !z.narrow) { C[0].x = W * 0.35; C[1].x = W * 0.75; }
+    const big = z.narrow ? clamp(W / 7.2, 40, 60) : clamp(Math.min(W / 11, H / 6), 62, 140);
+    const items = cats.map((c, k) => ({
+      key: "/" + c.slug, label: c.title, href: link("/" + c.slug), kind: "center", tint: tintOf(c.palette),
+      size: big, minR: z.minChild * 1.2, sets: [k], nucleus: k, pointText: true,
+    }));
     items.push(...drifters(t, W, true));
     return {
       title: site.name, h1: site.name, items,
       sets: cats.map((c, k) => ({ ...C[k], tint: tintOf(c.palette) })),
-      anchors: { "/": z.narrow ? { x: W / 2, y: H * 0.1 } : { x: W / 2, y: H * 0.15 } },
-      comp: { x: W / 2, y: H * 0.56 }, maxGrow: 1.15,
+      comp: { x: W / 2, y: H * 0.56 }, maxGrow: 0.92,
     };
   }
   // menükben: a menü neve a felső útvonalsávba kerül (Bordás Máté › Irodalom › …),
@@ -284,7 +282,7 @@ let currentWorkKey = null;
 
 // a felső útvonalsáv: Bordás Máté › menü › almenü › mű (minden szint kattintható, az utolsó az aktuális)
 function crumbsFor(r) {
-  if (r.type === "home") return null;
+  if (r.type === "home") return [{ text: site.name }];
   const L = (text, path) => ({ text, href: link(path) });
   const out = [L(site.name, "/")];
   if (r.type === "notfound") return [...out, { text: "Nincs ilyen oldal" }];

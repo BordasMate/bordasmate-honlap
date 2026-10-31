@@ -6,7 +6,7 @@
 // A fizika és az elrendezés képernyő-koordinátákban dolgozik; a sejtek összetapadnak,
 // sodródnak és lökdösik egymást, a renderelő pedig a talajsíkra vetíti őket.
 
-import { createLidar, makeNoisePoints, MAX_CELLS, MAX_GEMS } from "./lidar.js";
+import { createLidar, makeNoisePoints, makeTextCloud, MAX_CELLS, MAX_GEMS } from "./lidar.js";
 
 /* ===== ALAPBEÁLLÍTÁSOK – a content.json "settings" része felülírja őket ===== */
 export const GLITCH = {
@@ -100,20 +100,20 @@ void main(){
       if (uGType.x > 0.0) {
         float bh = 4.0 + 26.0 * hash(vec2(floor(pc.y / 37.0), uGSeed));
         float band = floor(pc.y / bh);
-        if (hash(vec2(band, uGSeed)) < 0.34) { s.x += (hash(vec2(band, uGSeed + 1.7)) - 0.5) * 150.0 * g; split = 3.0 * g; scan = g; }
+        if (hash(vec2(band, uGSeed)) < 0.28) { s.x += (hash(vec2(band, uGSeed + 1.7)) - 0.5) * 100.0 * g; split = 2.1 * g; scan = 0.8 * g; }
       }
       // blokkeltolódás
       if (uGType.w > 0.0) {
         vec2 bl = floor(pc / vec2(56.0, 22.0));
-        if (hash(bl + uGSeed * 1.3) < 0.22) { s += (hash2(bl + uGSeed * 2.1) - 0.5) * vec2(96.0, 26.0) * g; split = max(split, 2.0 * g); }
+        if (hash(bl + uGSeed * 1.3) < 0.18) { s += (hash2(bl + uGSeed * 2.1) - 0.5) * vec2(66.0, 18.0) * g; split = max(split, 1.4 * g); }
       }
       // függőleges elkenődés (pixelsort)
       if (uGType.y > 0.0) {
         float cw = 2.0 + 14.0 * hash(vec2(floor(pc.x / 48.0), uGSeed + 3.0));
         float ci = floor(pc.x / cw);
-        if (hash(vec2(ci, uGSeed + 5.0)) < 0.62) {
+        if (hash(vec2(ci, uGSeed + 5.0)) < 0.5) {
           float anchor = lo.y + hash(vec2(ci, uGSeed + 9.0)) * uGRect.w;
-          s.y = anchor + (pc.y - anchor) * mix(1.0, 0.1, min(1.0, g * 1.4));
+          s.y = anchor + (pc.y - anchor) * mix(1.0, 0.28, min(1.0, g * 1.2));
         }
       }
       // kristályos háromszög-mozaik
@@ -125,33 +125,33 @@ void main(){
         float up = step(f.x + f.y, 1.0);
         vec2 cen = ci + mix(vec2(2.0/3.0), vec2(1.0/3.0), up);
         vec2 back = vec2(cen.x + cen.y * 0.5, cen.y * 0.8660254) * sz;
-        if (hash(ci + up * 17.0 + uGSeed) < 0.78) s = back + (hash2(ci + up * 3.0 + uGSeed) - 0.5) * sz * 0.55;
+        if (hash(ci + up * 17.0 + uGSeed) < 0.6) s = back + (hash2(ci + up * 3.0 + uGSeed) - 0.5) * sz * 0.4;
       }
       // pixelmozaik
       if (uGType2.x > 0.0) {
-        float ps = 5.0 + 13.0 * hash(vec2(uGSeed, 2.0));
+        float ps = 4.0 + 9.0 * hash(vec2(uGSeed, 2.0));
         vec2 cell = floor(s / ps);
-        if (hash(cell * 0.13 + floor(uGSeed)) < 0.85) s = (cell + 0.5) * ps;
+        if (hash(cell * 0.13 + floor(uGSeed)) < 0.7) s = (cell + 0.5) * ps;
       }
       // képszakadás és -gördülés
       if (uGType2.y > 0.0) {
-        s.x += sin(pc.y * 0.045 + uGSeed * 3.0) * 14.0 * g;
+        s.x += sin(pc.y * 0.045 + uGSeed * 3.0) * 9.0 * g;
         float row = floor(pc.y / 3.0);
-        s.x += step(hash(vec2(row, uGSeed)), 0.06) * (hash(vec2(row, uGSeed + 4.0)) - 0.5) * 80.0 * g;
+        s.x += step(hash(vec2(row, uGSeed)), 0.05) * (hash(vec2(row, uGSeed + 4.0)) - 0.5) * 52.0 * g;
         float H = uRes.y / uScale;
-        s.y = mod(s.y + hash(vec2(uGSeed, 11.0)) * H * 0.18 * g, H);
-        split = max(split, 2.5 * g);
+        s.y = mod(s.y + hash(vec2(uGSeed, 11.0)) * H * 0.1 * g, H);
+        split = max(split, 1.7 * g);
       }
       // vízszintes elnyújtás sávokban (a látható képet húzza szét)
       if (uGType2.z > 0.0) {
         float band = floor(pc.y / (8.0 + 46.0 * hash(vec2(uGSeed, 5.0))));
-        if (hash(vec2(band, uGSeed + 8.0)) < 0.35) {
+        if (hash(vec2(band, uGSeed + 8.0)) < 0.28) {
           float ax = lo.x + hash(vec2(band, uGSeed + 2.0)) * uGRect.z;
-          s.x = ax + (s.x - ax) * mix(1.0, 0.22, min(1.0, g * 1.3));
+          s.x = ax + (s.x - ax) * mix(1.0, 0.4, min(1.0, g * 1.2));
         }
       }
       // váltott soros kiesés
-      if (uGType2.w > 0.0 && mod(floor(fc.y), 2.0) < 1.0) { s.x += 6.0 * g; scan = max(scan, 1.6 * g); }
+      if (uGType2.w > 0.0 && mod(floor(fc.y), 2.0) < 1.0) { s.x += 4.0 * g; scan = max(scan, 1.2 * g); }
       suv = fract(toUV(s));
       glitched = 1.0;
     }
@@ -212,7 +212,7 @@ void main(){
     float inR = step(uGRect.x, pc.x) * step(pc.x, uGRect.x + uGRect.z) * step(uGRect.y, pc.y) * step(pc.y, uGRect.y + uGRect.w);
     float band = floor(pc.y / (6.0 + 40.0 * hash(vec2(uGSeed, 5.0))));
     float hb = hash(vec2(band, uGSeed + 8.0));
-    if (inR > 0.0 && hb < 0.3) col = floor(col * 5.0 + 0.5) / 5.0;
+    if (inR > 0.0 && hb < 0.2) col = mix(col, floor(col * 5.0 + 0.5) / 5.0, 0.7);
   }
 
   // monokróm (almenük)
@@ -419,6 +419,9 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
   }
 
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let ovReady = false;
+  let fontVer = 0;   // ha egy betűtípus később töltődik be, a pontfelhő-betűk újraépülnek
+  try { document.fonts.addEventListener("loadingdone", () => fontVer++); } catch {}
   const bodies = new Map();
   const ripples = [];
   let panel = null, panelOn = 0, panelTarget = 0;
@@ -444,6 +447,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     canvas.width = Math.round(W * scale); canvas.height = Math.round(H * scale);
     canvas.style.width = W + "px"; canvas.style.height = H + "px";
     allocTarget();
+    if (ovReady) sizeOverlay();
   }
   resize();
 
@@ -460,13 +464,13 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
   /* ----- glitch ----- */
 
   const G = { queue: [], end: 0, next: performance.now() + GLITCH.firstAfter, rect: [0, 0, 0, 0], type: [0, 0, 0, 0], type2: [0, 0, 0, 0], seed: 0, seedT: 0, power: 0, amt: 0 };
-  function burst({ full = null, power = 1, dur = null, types = null } = {}) {
+  function burst({ full = null, power = 1, dur = null, types = null, blob = null } = {}) {
     if ((reduced && GLITCH.respectReducedMotion) || !GLITCH.enabled) return;
     const now = performance.now();
     // néha a teljes oldalt érinti
     if (full === null) full = Math.random() < GLITCH.fullChance;
     G.end = now + (dur ?? GLITCH.minLength + Math.random() * (GLITCH.maxLength - GLITCH.minLength));
-    G.power = power * GLITCH.intensity;
+    G.power = power * GLITCH.intensity * 0.82;   // valamivel finomabb, mint korábban
     if (full) G.rect = [0, 0, W, H];
     else {
       const list = [...bodies.values()].filter((b) => b.ax > 12 && (b.kind !== "drift" || Math.abs(b.z) < 0.3));
@@ -489,16 +493,170 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       for (let i = 0; i < n; i++) t[pool[Math.floor(Math.random() * pool.length)]] = 1;
     }
     G.type = t.slice(0, 4); G.type2 = t.slice(4);
+    // néha a glitch-csel együtt a „blob tracking” réteg is felvillan a torzított részen
+    if (blob ?? Math.random() < (full ? 0.55 : 0.4)) BT.glitch = { until: G.end + 220, rect: G.rect.slice(), seed: Math.random() * 1000 };
     const [rx, ry, rw, rh] = G.rect;
     for (const b of bodies.values()) {
       if (!b.el || b.kind === "drift") continue;
       const bx = b.sx ?? b.x, by = b.sy ?? b.y;
       if (bx > rx && bx < rx + rw && by > ry && by < ry + rh) {
         b.el.classList.add("glitch");
-        b.el.style.setProperty("--gx", ((Math.random() - 0.5) * 14).toFixed(1) + "px");
+        b.el.style.setProperty("--gx", ((Math.random() - 0.5) * 9).toFixed(1) + "px");
         clearTimeout(b.glitchT);
         b.glitchT = setTimeout(() => b.el && b.el.classList.remove("glitch"), G.end - now);
       }
+    }
+  }
+
+  /* ----- „blob tracking” réteg -----
+     Számítógépes látás (blobkövetés) stílusú rajz: a pontfelhő-betűk köré követődobozok,
+     azonosítók, koordináták, összekötő vonalak; glitchnél a torzított részen is felvillan. */
+  const ov = document.createElement("canvas");
+  ov.id = "blobs"; ov.setAttribute("aria-hidden", "true");
+  canvas.after(ov);
+  const oc = ov.getContext("2d");
+  ovReady = true;
+  const BT = { glitch: null, lost: new Map(), dirty: false };
+  let ovScale = 1;
+  function sizeOverlay() {
+    ovScale = Math.min(2, window.devicePixelRatio || 1);
+    ov.width = Math.round(W * ovScale); ov.height = Math.round(H * ovScale);
+    ov.style.width = W + "px"; ov.style.height = H + "px";
+  }
+  const MONO_FONT = '"DM Mono", "Roboto Mono", ui-monospace, Menlo, Consolas, monospace';
+  try { document.fonts.load(`500 10px "DM Mono"`); } catch {}
+  sizeOverlay();
+  const pad2 = (n) => String(n).padStart(2, "0");
+  function hashN(a, b = 0) { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); }
+  function tag(x, y, text, col, alpha) {
+    oc.font = `500 ${W < 640 ? 8.5 : 9.5}px ${MONO_FONT}`;
+    const w = oc.measureText(text).width + 6;
+    oc.fillStyle = `rgba(0,0,0,${0.55 * alpha})`;
+    oc.fillRect(x, y - 11, w, 12);
+    oc.fillStyle = col;
+    oc.fillText(text, x + 3, y - 2);
+  }
+  function box(x0, y0, x1, y1, col, { corner = 6, alpha = 1, dash = null } = {}) {
+    oc.strokeStyle = col; oc.globalAlpha = alpha * 0.55; oc.lineWidth = 1;
+    if (dash) oc.setLineDash(dash);
+    oc.strokeRect(Math.round(x0) + 0.5, Math.round(y0) + 0.5, Math.round(x1 - x0), Math.round(y1 - y0));
+    oc.setLineDash([]);
+    // erősebb sarokjelek
+    oc.globalAlpha = alpha; oc.lineWidth = 1.5;
+    const c = Math.min(corner, (x1 - x0) / 3, (y1 - y0) / 3);
+    oc.beginPath();
+    oc.moveTo(x0, y0 + c); oc.lineTo(x0, y0); oc.lineTo(x0 + c, y0);
+    oc.moveTo(x1 - c, y0); oc.lineTo(x1, y0); oc.lineTo(x1, y0 + c);
+    oc.moveTo(x1, y1 - c); oc.lineTo(x1, y1); oc.lineTo(x1 - c, y1);
+    oc.moveTo(x0 + c, y1); oc.lineTo(x0, y1); oc.lineTo(x0, y1 - c);
+    oc.stroke();
+    oc.globalAlpha = 1;
+  }
+  function cross(x, y, r, col, alpha = 1) {
+    oc.strokeStyle = col; oc.globalAlpha = alpha; oc.lineWidth = 1;
+    oc.beginPath(); oc.moveTo(x - r, y); oc.lineTo(x + r, y); oc.moveTo(x, y - r); oc.lineTo(x, y + r); oc.stroke();
+    oc.globalAlpha = 1;
+  }
+  function drawBlobs(now, cells, gems) {
+    const texts = cells.filter((b) => b.cloud && b.tframe && b.alpha > 0.05);
+    const gl8 = BT.glitch && now < BT.glitch.until ? BT.glitch : null;
+    if (!texts.length && !gl8) { if (BT.dirty) { oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, ov.width, ov.height); BT.dirty = false; } return; }
+    BT.dirty = true;
+    oc.setTransform(ovScale, 0, 0, ovScale, 0, 0);
+    oc.clearRect(0, 0, W, H);
+    oc.textBaseline = "alphabetic";
+    const tk = reduced ? 0 : Math.floor(now / 110);       // a követés „rángása”
+    const tint = mono > 0.5 ? `rgb(${monoTint.map((v) => Math.round(Math.min(1, v * 1.2) * 255)).join(",")})` : "rgb(235,244,255)";
+    const acc = mono > 0.5 ? tint : "rgb(120,235,255)";
+    const glitchJ = G.amt > 0 ? 6 * G.amt : 0;
+    // --- a pontfelhő-betűk követése ---
+    let id = 0;
+    const centers = [];
+    texts.forEach((b, wi) => {
+      const a = b.alpha;
+      const L = b.cloud.letters;
+      let ux0 = Infinity, uy0 = Infinity, ux1 = -Infinity, uy1 = -Infinity;
+      const pts = [];
+      L.forEach((lt, li) => {
+        id++;
+        // a betű dobozának 8 sarka (elöl és hátul) → képernyőn befoglaló téglalap
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const d of [0, 1]) for (const [px, py] of [[lt.x0, lt.y0], [lt.x1, lt.y0], [lt.x1, lt.y1], [lt.x0, lt.y1]]) {
+          const q = lidar.textToScreen(b, px, py, d);
+          if (!q) continue;
+          x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]);
+        }
+        if (!isFinite(x0)) return;
+        ux0 = Math.min(ux0, x0); uy0 = Math.min(uy0, y0); ux1 = Math.max(ux1, x1); uy1 = Math.max(uy1, y1);
+        const key = b.key + li;
+        // néha „elveszti” a követést egy rövid időre
+        const lostT = BT.lost.get(key) || 0;
+        if (!reduced && now > lostT + 400 && hashN(tk, id * 3.1 + wi) < 0.012) BT.lost.set(key, now);
+        if (now - (BT.lost.get(key) || -1e9) < 260) return;
+        const j = reduced ? 0 : 1.6;
+        const jx = (hashN(tk, id) - 0.5) * j * 2 + (hashN(tk, id + 50) - 0.5) * glitchJ;
+        const jy = (hashN(tk + 7, id) - 0.5) * j * 2;
+        const pd = 4;
+        box(x0 - pd + jx, y0 - pd + jy, x1 + pd + jx, y1 + pd + jy, tint, { alpha: a * 0.9 });
+        const cx = (x0 + x1) / 2 + jx, cy = (y0 + y1) / 2 + jy;
+        cross(cx, cy, 3, acc, a * 0.9);
+        pts.push([cx, cy]);
+        const conf = (0.86 + 0.13 * hashN(Math.floor(now / 700), id)).toFixed(2);
+        if (li % 2 === 0 || W >= 900) tag(x0 - pd + jx, y0 - pd + jy - 2, `#${pad2(id)} ${lt.ch}`, tint, a);
+        if (W >= 900 && li % 2 === 1) { oc.globalAlpha = a * 0.8; tag(x0 - pd + jx, y1 + pd + jy + 12, `${Math.round(cx)},${Math.round(cy)} ${conf}`, acc, a); oc.globalAlpha = 1; }
+      });
+      if (!isFinite(ux0)) return;
+      // a betűközéppontokat összekötő vonal
+      oc.strokeStyle = acc; oc.globalAlpha = a * 0.45; oc.lineWidth = 1;
+      oc.beginPath(); pts.forEach(([x, y], i) => (i ? oc.lineTo(x, y) : oc.moveTo(x, y))); oc.stroke();
+      oc.globalAlpha = 1;
+      // a teljes szó: szaggatott keret, felirattal
+      const m = 14;
+      box(ux0 - m, uy0 - m, ux1 + m, uy1 + m, tint, { alpha: a * 0.6, corner: 12, dash: [3, 4] });
+      const area = Math.round((ux1 - ux0) * (uy1 - uy0));
+      tag(ux0 - m, uy1 + m + 13, `BLOB_${pad2(wi + 1)} ${b.cloud.lines.join(" ")}  A=${area}  N=${b.cloud.count}`, tint, a * 0.9);
+      centers.push([(ux0 + ux1) / 2, (uy0 + uy1) / 2, a]);
+    });
+    // a szavak között hosszú összekötő vonal, távolsággal
+    if (centers.length > 1) {
+      for (let i = 0; i < centers.length - 1; i++) {
+        const [x0, y0, a0] = centers[i], [x1, y1, a1] = centers[i + 1];
+        oc.strokeStyle = tint; oc.globalAlpha = Math.min(a0, a1) * 0.3; oc.setLineDash([2, 5]);
+        oc.beginPath(); oc.moveTo(x0, y0); oc.lineTo(x1, y1); oc.stroke(); oc.setLineDash([]);
+        oc.globalAlpha = 1;
+        tag((x0 + x1) / 2 - 24, (y0 + y1) / 2 - 6, `d=${Math.round(Math.hypot(x1 - x0, y1 - y0))}`, acc, Math.min(a0, a1) * 0.8);
+      }
+    }
+    // --- glitch közben: követődobozok a torzított részen ---
+    if (gl8) {
+      const [rx, ry, rw, rh] = gl8.rect;
+      const fk = Math.floor(now / 55);
+      const inR = (x, y) => x > rx && x < rx + rw && y > ry && y < ry + rh;
+      const found = [];
+      for (const b of [...cells, ...gems]) {
+        const x = b.sx ?? b.x, y = b.sy ?? b.y;
+        if (!inR(x, y) || b.alpha < 0.2 || b.cloud) continue;
+        const r = b.kind === "drift" ? b.ax * 0.8 : Math.min(b.ax, b.ay) * 0.75;
+        found.push([x - r * 1.1, y - r * 0.8, x + r * 1.1, y + r * 0.8]);
+      }
+      const n = 5 + Math.floor(hashN(gl8.seed, 1) * 7);
+      for (let i = 0; i < n; i++) {
+        const w = 18 + hashN(gl8.seed + i, fk % 3) * 110, h = 14 + hashN(gl8.seed - i, fk % 4) * 70;
+        const x = rx + hashN(gl8.seed, i * 2 + (fk % 5)) * Math.max(1, rw - w), y = ry + hashN(gl8.seed, i * 2 + 1 + (fk % 2)) * Math.max(1, rh - h);
+        found.push([x, y, x + w, y + h]);
+      }
+      const cs = [];
+      found.forEach(([x0, y0, x1, y1], i) => {
+        if (hashN(fk, i + gl8.seed) < 0.12) return;   // villódzó kiesés
+        box(x0, y0, x1, y1, i % 3 === 0 ? acc : tint, { alpha: 0.85, corner: 5 });
+        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+        cross(cx, cy, 3, acc, 0.9);
+        cs.push([cx, cy]);
+        tag(x0, y0 - 2, `ID ${pad2(Math.floor(hashN(gl8.seed, i) * 90) + 10)}`, tint, 0.95);
+        if (x1 - x0 > 60) tag(x0, y1 + 12, `${Math.round(cx)},${Math.round(cy)}`, acc, 0.8);
+      });
+      oc.strokeStyle = acc; oc.globalAlpha = 0.4; oc.beginPath();
+      cs.forEach(([x, y], i) => (i ? oc.lineTo(x, y) : oc.moveTo(x, y))); oc.stroke(); oc.globalAlpha = 1;
     }
   }
 
@@ -602,6 +760,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
         ax = Math.max((it.minR || 0) * minScale, tw * g);
         ay = Math.max(th * g, ax / maxAsp, (it.minR || 0) * minScale * 0.7);
       }
+      if (it.pointText) { ax *= 0.76; ay *= 0.86; }
       return { ...it, text, lines, fs, ax, ay, st };
     };
     const P = scene.panel;
@@ -660,7 +819,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
         bodies.set(s.key, b);
       }
       Object.assign(b, {
-        kind: s.kind, tint: s.tint ?? 0, href: s.href || null, anchor: s.anchor || b.anchor0 || null, heavy: !!s.heavy, z: s.z ?? 0, active: !!s.active,
+        kind: s.kind, tint: s.tint ?? 0, href: s.href || null, anchor: s.anchor || b.anchor0 || null, heavy: !!s.heavy, z: s.z ?? 0, active: !!s.active, pointText: !!s.pointText,
         mask: (s.sets || []).reduce((m, k) => m | (1 << k), 0),
         tax: s.ax, tay: s.ay, dying: false, fs: s.fs, lines: s.lines, st: s.st,
       });
@@ -680,6 +839,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
     b.el.classList.remove("gone");
     b.el.dataset.kind = b.kind;
     b.el.classList.toggle("active", !!b.active);
+    b.el.classList.toggle("pc", !!b.pointText);   // a felirat pontfelhőként látszik, a HTML-szöveg csak kattintható / felolvasható
     if (b.href) b.el.setAttribute("href", b.href);
     b.el.style.fontSize = b.fs.toFixed(1) + "px";
     b.el.style.fontWeight = b.st.weight;
@@ -872,6 +1032,9 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       if (b.kind === "drift") { b.alpha = alpha; gems.push(b); continue; }
       b.alpha = alpha;
       b.kindCode = b.kind === "nav" ? 1 : b.kind === "center" || b.kind === "name" ? 2 : 0;
+      b.cloud = b.pointText && b.lines && b.lines.length && !b.dying
+        ? makeTextCloud({ lines: b.lines, fs: b.fs, weight: b.st.weight, track: b.st.track, family: LOOK.displayFont, ver: fontVer, budget: [4200, 7000, 11000][tier.q] })
+        : null;
       cells.push(b);
     }
     if (noiseFor !== tier.q) { noisePts = makeNoisePoints([140, 260, 420][tier.q]); noiseFor = tier.q; }
@@ -899,8 +1062,9 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
       },
       cells, gems, sets, ripples, pad: padPx(),
       tints: new Float32Array(TINT_DATA.flat()), glow: GLOW_DATA,
-      gemA: GEM_A, gemB: GEM_B, look: Ld, noise: noisePts,
+      gemA: GEM_A, gemB: GEM_B, look: Ld, noise: noisePts, reduced,
     });
+    drawBlobs(now, cells, gems);
     // a feliratok a vetített helyre
     for (const b of cells) {
       if (!b.el || b.sx === undefined) continue;
@@ -1036,6 +1200,7 @@ export function createOrganism(canvas, labelLayer, opts = {}) {
 
   if (params.has("debug")) window.__bodies = bodies;
   if (params.has("debug")) window.__G = G;
+  if (params.has("debug")) window.__burst = burst;
   if (params.has("debug")) window.__bench = (n = 10) => {
     // csak teszteléshez: n teljes képkocka GPU-ideje, a böngésző többi munkája nélkül
     running = false;

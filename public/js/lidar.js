@@ -5,6 +5,7 @@
 
 export const MAX_CELLS = 24;
 export const MAX_GEMS = 14;
+export const MAX_TEXT = 4;
 const MAX_SETS = 3;
 const MAX_RIP = 8;
 
@@ -203,6 +204,44 @@ void main(){
   emit(pos, col, 2.8);
 }`;
 
+// térbeli pontfelhő-betűk (a nyitóoldal IRODALOM / ZENE felirata): a kirajzolt betűk mintavételezett
+// pontjai elöl, mögöttük kihúzott oldalfalak; a sík a kamera felé néz, és lassan billeg
+const TEXT_VS = `#version 300 es
+layout(location = 0) in vec4 aT;  // x, y (betűpixel a felirat közepéhez képest), mélység 0..1, véletlen
+layout(location = 1) in vec2 aS;  // felirat sorszáma, perempont (0, 0.5, 1)
+${COMMON}
+uniform int uTN;
+uniform vec4 uTO[${MAX_TEXT}];   // origó (világ), világegység / betűpixel
+uniform vec3 uTR[${MAX_TEXT}], uTU[${MAX_TEXT}], uTZ[${MAX_TEXT}];
+uniform vec4 uTP[${MAX_TEXT}];   // fél szélesség, fél magasság (px), vastagság (világ), pontméret (világ)
+uniform vec4 uTQ[${MAX_TEXT}];   // tónus, kiemelés, láthatóság, seed
+void main(){
+  int i = int(aS.x + 0.5);
+  if (i >= uTN) { hide(); return; }
+  vec4 O = uTO[i], Pp = uTP[i], Q = uTQ[i];
+  if (aT.w > Q.z) { hide(); return; }
+  float d = aT.z, edge = aS.y;
+  // a pontok enyhén remegnek a mélység mentén (mint egy élő szken)
+  float jit = sin(uTime * 2.3 + aT.w * 61.0) * 0.35 + sin(uTime * 0.7 + aT.x * 0.05) * 0.25;
+  vec3 pos = O.xyz + uTR[i] * aT.x * O.w - uTU[i] * aT.y * O.w - uTZ[i] * (d * Pp.z + jit * O.w);
+  float yN = clamp(0.5 - aT.y / (2.0 * Pp.y), 0.0, 1.0);
+  vec3 col;
+  if (d < 0.001) {
+    col = turbo(0.5 + 0.42 * yN);
+    col = mix(col, vec3(1.0), 0.42 + 0.3 * edge);
+  } else {
+    col = turbo(0.1 + 0.34 * (1.0 - d)) * (0.55 + 0.35 * edge);
+  }
+  vec4 tint = uTint[int(Q.x + 0.5)];
+  col = mix(col, tint.rgb * (0.6 + 0.8 * yN), uTintMix * 0.6);
+  // pásztázó szkenvonal
+  float sc = 1.0 - smoothstep(0.0, 0.05, abs(fract(aT.x / (2.0 * Pp.x) * 0.6 - uTime * 0.11 + Q.w) - 0.5));
+  col += sc * vec3(0.55, 0.6, 0.7) * (d < 0.001 ? 1.0 : 0.5);
+  col *= 0.82 + 0.3 * fract(aT.w * 7.13);
+  col = mix(col, vec3(1.0), Q.y * 0.3);
+  emit(pos, col, Pp.w * (d < 0.001 ? 1.0 : 0.85) * (1.0 + 0.25 * Q.y));
+}`;
+
 // szabad pontok: halmazkontúrok, a kiemelt sejt kontúrja, szórt „zajpontok”
 const FREE_VS = `#version 300 es
 layout(location = 0) in vec4 aP;  // x, y, z, méret
@@ -271,6 +310,36 @@ export function createLidar(gl) {
   let counts = {};
   const freeBuf = gl.createBuffer();
   let freeData = new Float32Array(0), freeCount = 0;
+  // pontfelhő-betűk
+  const textBuf = gl.createBuffer();
+  let textVao = null, textKey = "", textCount = 0;
+  function uploadText(clouds) {
+    const key = clouds.map((c) => c.id).join("|");
+    if (key === textKey) return;
+    textKey = key;
+    const total = clouds.reduce((a, c) => a + c.count, 0);
+    const buf = new Float32Array(total * 6);
+    let o = 0;
+    clouds.forEach((c, slot) => {
+      for (let n = 0; n < c.count; n++) {
+        buf[o++] = c.data[n * 5]; buf[o++] = c.data[n * 5 + 1]; buf[o++] = c.data[n * 5 + 2]; buf[o++] = c.data[n * 5 + 3];
+        buf[o++] = slot; buf[o++] = c.data[n * 5 + 4];
+      }
+    });
+    if (!textVao) {
+      textVao = gl.createVertexArray();
+      gl.bindVertexArray(textVao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, textBuf);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 24, 0);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 24, 16);
+      gl.bindVertexArray(null);
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, textBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, buf, gl.STATIC_DRAW);
+    textCount = total;
+  }
 
   function vao(name, data, comps, stride = comps) {
     if (vaos[name]) { gl.deleteVertexArray(vaos[name].vao); gl.deleteBuffer(vaos[name].buf); }
@@ -296,7 +365,9 @@ export function createLidar(gl) {
       gem: prog(GEM_VS, POINT_FS),
       free: prog(FREE_VS, POINT_FS),
       slab: prog(SLAB_VS, SLAB_FS),
+      text: prog(TEXT_VS, POINT_FS),
     };
+    textKey = "";
     // talajrács
     const g = new Float32Array(grid * grid * 3);
     let k = 0;
@@ -387,7 +458,8 @@ export function createLidar(gl) {
       const [x2] = toWorld(b.x + 10, b.y);
       const k = Math.abs(x2 - x) / 10 || 1;
       const rx = b.ax * k * 0.98, rz = b.ay * k * 1.2;
-      const h = Math.min(rx, rz) * 0.95 * L.relief + 14;
+      // a pontfelhő-betűk alatt csak alacsony halom marad, a betűk fölötte lebegnek
+      const h = (Math.min(rx, rz) * 0.95 * L.relief + 14) * (b.cloud ? 0.3 : 1);
       const lift = 6 + Math.sin(s.time * (0.8 + b.seed * 0.5) + b.seed * 20) * 4;
       C.set([x, z, rx, rz], i * 4);
       D.set([h, lift, b.hover, b.seed], i * 4);
@@ -395,6 +467,37 @@ export function createLidar(gl) {
       b.world = { x, z, rx, rz, h, lift };
       // a felirat a kupola belsejében, a mozgó kamera szerint
       const [sx, sy] = toScreen(x, lift + h * 0.42, z);
+      b.sx = sx; b.sy = sy;
+      b.tframe = null;
+    });
+
+    // pontfelhő-betűk: a sík a (nyugodt) kamera felé néz, és lassan billeg, hogy látsszon a mélysége
+    const texts = s.cells.filter((b) => b.cloud && b.world).slice(0, MAX_TEXT);
+    uploadText(texts.map((b) => b.cloud));
+    const TO = new Float32Array(MAX_TEXT * 4), TR = new Float32Array(MAX_TEXT * 3), TU = new Float32Array(MAX_TEXT * 3), TZ = new Float32Array(MAX_TEXT * 3);
+    const TP = new Float32Array(MAX_TEXT * 4), TQ = new Float32Array(MAX_TEXT * 4);
+    texts.forEach((b, i) => {
+      const w = b.world, c = b.cloud;
+      const k = w.rx / (b.ax * 0.98);   // világegység / képernyőpixel a sejt helyén
+      const th = (s.reduced ? 0 : 0.2 * Math.sin(s.time * 0.23 + b.seed * 6)) + 0.12 * (i % 2 ? -1 : 1);
+      const ph = s.reduced ? 0 : 0.07 * Math.sin(s.time * 0.17 + b.seed * 3);
+      const cb = cam.base;
+      const ct = Math.cos(th), st = Math.sin(th);
+      let R = norm(add(mul(cb.right, ct), mul(cb.fwd, st)));
+      let Z = norm(add(mul(cb.fwd, -ct), mul(cb.right, st)));   // a kamera felé
+      let U = cb.up;
+      const cp = Math.cos(ph), sp = Math.sin(ph);
+      const U2 = norm(add(mul(U, cp), mul(Z, sp)));
+      Z = norm(add(mul(Z, cp), mul(U, -sp)));
+      U = U2;
+      const thick = c.h * k * 0.32;
+      const O = [w.x, w.lift + w.h * 0.6 + (c.h * 0.5) * k * 0.8, w.z];
+      TO.set([O[0], O[1], O[2], k], i * 4);
+      TR.set(R, i * 3); TU.set(U, i * 3); TZ.set(Z, i * 3);
+      TP.set([c.w / 2, c.h / 2, thick, c.step * k * 1.3], i * 4);
+      TQ.set([b.tint, b.hover, b.alpha, b.seed], i * 4);
+      b.tframe = { O, R, U, Z, k, thick };
+      const [sx, sy] = toScreen(O[0], O[1], O[2]);
       b.sx = sx; b.sy = sy;
     });
 
@@ -535,6 +638,20 @@ export function createLidar(gl) {
     gl.bindVertexArray(vaos.gem.vao);
     gl.drawArrays(gl.POINTS, 0, Math.min(s.gems.length, MAX_GEMS) * gemPts);
 
+    // pontfelhő-betűk
+    if (texts.length && textCount) {
+      common(P.text);
+      gl.uniform1i(P.text.U.uTN, texts.length);
+      gl.uniform4fv(P.text.U.uTO, TO);
+      gl.uniform3fv(P.text.U.uTR, TR);
+      gl.uniform3fv(P.text.U.uTU, TU);
+      gl.uniform3fv(P.text.U.uTZ, TZ);
+      gl.uniform4fv(P.text.U.uTP, TP);
+      gl.uniform4fv(P.text.U.uTQ, TQ);
+      gl.bindVertexArray(textVao);
+      gl.drawArrays(gl.POINTS, 0, textCount);
+    }
+
     // szabad pontok
     if (freeCount) {
       common(P.free);
@@ -547,7 +664,14 @@ export function createLidar(gl) {
     gl.disable(gl.DEPTH_TEST);
   }
 
-  return { setQuality, render, toWorld, toScreen };
+  // egy betűpont (felirat-koordináta, mélység 0..1) képernyőhelye – a „blob tracking” rétegnek
+  function textToScreen(b, x, y, d = 0) {
+    const f = b.tframe;
+    if (!f) return null;
+    const p = add(add(f.O, mul(f.R, x * f.k)), add(mul(f.U, -y * f.k), mul(f.Z, -d * f.thick)));
+    return toScreen(p[0], p[1], p[2]);
+  }
+  return { setQuality, render, toWorld, toScreen, textToScreen };
 }
 
 function mulberry(a) {
@@ -573,4 +697,66 @@ function turboJS(x) {
     d([0.09140261, 2.19418839, 4.84296658, -14.18503333], [4.27729857, 2.82956604]),
     d([0.1066733, 12.64194608, -60.58204836, 110.36276771], [-89.90310912, 27.34824973]),
   ];
+}
+
+/* ---------------- pontfelhő-betűk előállítása ---------------- */
+// A feliratot egy rejtett vásznon kirajzoljuk, a kitöltött képpontokból mintát veszünk (elülső arc),
+// a peremekből több rétegben hátrafelé kihúzott oldalfalat építünk. Visszaadja a betűk dobozait is.
+const cloudCache = new Map();
+export function makeTextCloud({ lines, fs, weight, track, family, budget, ver = 0 }) {
+  const id = [lines.join("/"), fs.toFixed(1), weight, track, family, budget, ver].join("|");
+  if (cloudCache.has(id)) return cloudCache.get(id);
+  const S = 2;                                   // a rasztervászon felbontása (élesebb mintavétel)
+  const cv = document.createElement("canvas");
+  const ctx = cv.getContext("2d", { willReadFrequently: true });
+  const font = `${weight} ${fs * S}px "${family}", system-ui, sans-serif`;
+  ctx.font = font;
+  const tr = track * fs * S;
+  const rows = lines.map((l) => {
+    const chars = Array.from(l), adv = chars.map((ch) => ctx.measureText(ch).width + tr);
+    return { chars, adv, w: adv.reduce((a, b) => a + b, 0) - tr };
+  });
+  const pad = Math.ceil(fs * S * 0.25), lh = fs * S * 1.08;
+  const Wc = Math.ceil(Math.max(...rows.map((r) => r.w)) + pad * 2), Hc = Math.ceil(rows.length * lh + pad * 2);
+  cv.width = Wc; cv.height = Hc;
+  ctx.font = font; ctx.fillStyle = "#fff"; ctx.textBaseline = "middle";
+  const letters = [];
+  rows.forEach((r, li) => {
+    let x = (Wc - r.w) / 2;
+    const y = pad + (li + 0.5) * lh;
+    r.chars.forEach((ch, ci) => {
+      ctx.fillText(ch, x, y);
+      if (ch.trim()) {
+        const m = ctx.measureText(ch);
+        letters.push({ ch, x0: (x + Math.min(0, -m.actualBoundingBoxLeft) - Wc / 2) / S, x1: (x + m.actualBoundingBoxRight - Wc / 2) / S,
+          y0: (y - m.actualBoundingBoxAscent - Hc / 2) / S, y1: (y + m.actualBoundingBoxDescent - Hc / 2) / S });
+      }
+      x += r.adv[ci];
+    });
+  });
+  const A = ctx.getImageData(0, 0, Wc, Hc).data;
+  const filled = (x, y) => { x = Math.round(x); y = Math.round(y); return x >= 0 && y >= 0 && x < Wc && y < Hc && A[(y * Wc + x) * 4 + 3] > 127; };
+  let nFilled = 0;
+  for (let i = 3; i < A.length; i += 4) if (A[i] > 127) nFilled++;
+  const front = budget * 0.62;
+  const step = Math.max(S * 0.9, Math.sqrt(nFilled / front));
+  const rnd = mulberry(Math.round(fs * 13) + lines.join("").length * 7);
+  const out = [];
+  const LAYERS = 6;
+  for (let gy = step / 2; gy < Hc; gy += step) {
+    for (let gx = step / 2; gx < Wc; gx += step) {
+      const x = gx + (rnd() - 0.5) * step * 0.8, y = gy + (rnd() - 0.5) * step * 0.8;
+      if (!filled(x, y)) continue;
+      const e = step * 1.25;
+      const edge = !filled(x + e, y) || !filled(x - e, y) || !filled(x, y + e) || !filled(x, y - e);
+      const px = (x - Wc / 2) / S, py = (y - Hc / 2) / S;
+      out.push(px, py, 0, rnd(), edge ? 1 : 0);
+      if (edge) for (let l = 1; l <= LAYERS; l++) if (rnd() < 0.7) out.push(px, py, l / LAYERS, rnd(), 0.5);
+      if (!edge && rnd() < 0.18) out.push(px, py, 1, rnd(), 0);
+    }
+  }
+  const cloud = { id, data: new Float32Array(out), count: out.length / 5, letters, w: Wc / S, h: Hc / S, step: step / S, lines };
+  cloudCache.set(id, cloud);
+  if (cloudCache.size > 24) cloudCache.delete(cloudCache.keys().next().value);
+  return cloud;
 }

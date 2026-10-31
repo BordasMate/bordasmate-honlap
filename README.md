@@ -18,6 +18,9 @@ A felület egy valós időben számolt, LiDAR-szerű **pontfelhő 3D térben**:
   a két kontúr metszetében ülnek. Az egérrel ráállt sejt körül fényes gyűrű.
 - **Mélység:** lebegő pontkristályok a lap fölött, mögött és a kamera előtt,
   mélységélesség, lassan mozgó kamera, egérrel parallaxis.
+- **Főmenü:** csak a két halmaz neve (IRODALOM, ZENE), nagy, térbeli
+  pontfelhő-betűkkel, körülöttük „blob tracking” (számítógépes látás) stílusú
+  követődobozokkal, azonosítókkal és koordinátákkal. A név a bal felső sávban.
 - **Glitch:** kb. 10 másodpercenként egy rövid sorozat, oldalváltáskor teljes
   képes glitch. **Színek:** a nyitóoldal színes, az almenük egyszínűek, de
   színesek (Irodalom réz, Zene kobalt, közös alkategóriák lila).
