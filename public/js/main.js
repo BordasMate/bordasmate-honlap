@@ -182,7 +182,12 @@ function sceneFor(r, W, H) {
     const { cat, sub, work } = r, t = tintOf(cat.palette), key = subKey(cat, sub);
     const panel = z.narrow
       ? (() => { const hh = (H * 0.54 - 12) / 2; return { x: W / 2, y: H - 12 - hh, hw: W / 2 - 12, hh, tint: t }; })()
-      : (() => { const hw = Math.min(400, W * 0.27); return { x: W - 24 - hw - Math.max(0, W * 0.08 - 40), y: H * 0.54, hw, hh: H * 0.4, tint: t }; })();
+      : (() => {
+        // beágyazott programnál szélesebb panel, hogy a mű a lehető legnagyobb keretet kapja
+        const hw = work.app ? Math.min(640, W * 0.36) : Math.min(400, W * 0.27);
+        const hh = work.app ? (H - top - 24) / 2 : H * 0.4;
+        return { x: W - 24 - hw - Math.max(0, W * (work.app ? 0.04 : 0.08) - 40), y: work.app ? top + hh : H * 0.54, hw, hh, tint: t };
+      })();
     // az alkategória összes műve együtt marad; az éppen megnyitott kiemelve
     const items = [
       ...(sub.works || []).map((w) => w === work
@@ -206,18 +211,21 @@ function sceneFor(r, W, H) {
   };
 }
 
+function appStage(w) {
+  return `<div class="app-stage" data-app="${esc(w.app)}">
+    <iframe src="${esc(w.app)}" title="${esc(w.title)}" allow="autoplay; fullscreen; microphone; camera; midi; clipboard-write" allowfullscreen></iframe>
+    <button class="app-full" type="button" aria-label="Teljes képernyő">Teljes képernyő ⤢</button>
+  </div>`;
+}
 function workBody(cat, sub, w) {
   let h = "";
+  if (w.app) h += appStage(w);   // a beágyazott program a panel tetején, a teljes látható magasságban
   h += `<h2 class="work-title">${esc(w.title)}</h2>`;
   if (w.meta) h += `<p class="meta">${esc(w.meta)}</p>`;
   if (w.image) h += `<figure class="figure"><img src="${esc(w.image)}" alt="${esc(w.title)}" loading="lazy"></figure>`;
   for (const p of w.about || []) h += `<p class="about">${esc(p)}</p>`;
   if (w.poem) h += `<div class="poem">${esc(w.poem)}</div>`;
   if (w.audio) h += `<audio class="audio" controls preload="none" src="${esc(w.audio)}"></audio>`;
-  if (w.app) h += `<div class="app-stage" data-app="${esc(w.app)}">
-    <iframe src="${esc(w.app)}" title="${esc(w.title)}" loading="lazy" allow="autoplay; fullscreen; microphone; camera; midi; clipboard-write" allowfullscreen></iframe>
-    <button class="app-full" type="button" aria-label="Teljes képernyő">Teljes képernyő ⤢</button>
-  </div>`;
   if (w.embed) h += `<div class="embed"><iframe src="${esc(w.embed)}" title="${esc(w.title)}" loading="lazy" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div>`;
   if (w.links?.length) h += `<ul class="links">${w.links.map((l) => `<li><a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join("")}</ul>`;
   if (w.entries?.length) {
@@ -317,17 +325,42 @@ function render() {
     const key = currentPath();
     if (key !== currentWorkKey) {
       currentWorkKey = key;
+      stopApps();
       panelEl.classList.remove("show");
       setTimeout(() => {
+        if (currentWorkKey !== key) return;          // közben máshová lépett a látogató
         panelEl.innerHTML = workBody(r.cat, r.sub, r.work);
+        panelEl.classList.toggle("has-app", !!r.work.app);
         panelEl.scrollTop = 0;
+        fitAppStage();
         panelEl.classList.add("show");
       }, panelEl.innerHTML ? 260 : 420);
-    }
+    } else fitAppStage();
   } else {
     currentWorkKey = null;
+    stopApps();
     panelEl.classList.remove("show");
   }
+}
+
+// a beágyazott programok csak a saját oldalukon futnak: máshová lépve azonnal leállnak
+// (a keretet a tartalmával együtt eltávolítjuk, így hang és számítás is megszűnik)
+function stopApps() {
+  panelEl.querySelectorAll(".app-stage").forEach((st) => {
+    if (st.classList.contains("is-full")) setAppFull(st, false);
+    const f = st.querySelector("iframe");
+    if (f) { try { f.src = "about:blank"; } catch (e) {} f.remove(); }
+    st.remove();
+  });
+}
+// a program kerete kitölti a panel látható magasságát
+function fitAppStage() {
+  const st = panelEl.querySelector(".app-stage");
+  if (!st || st.classList.contains("is-full")) return;
+  const cs = getComputedStyle(panelEl);
+  const h = panelEl.clientHeight - st.offsetTop - parseFloat(cs.paddingBottom) + 8;
+  st.style.aspectRatio = "auto";
+  st.style.height = Math.max(240, Math.round(h)) + "px";
 }
 
 function go(path) {
@@ -343,6 +376,7 @@ function setAppFull(stage, on) {
   stage.querySelector(".app-full").textContent = on ? "Bezárás ✕" : "Teljes képernyő ⤢";
   if (org && org.pause) org.pause(on);
   if (on) stage.querySelector("iframe").focus();
+  else fitAppStage();
 }
 document.addEventListener("keydown", (e) => {
   const st = document.querySelector(".app-stage.is-full");

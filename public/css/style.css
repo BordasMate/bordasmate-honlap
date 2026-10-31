@@ -323,7 +323,7 @@ a.crumb:focus-visible, .crumb-group a:focus-visible { outline: 2px solid var(--m
 
 .app-stage {
   position: relative;
-  margin: 1.2em 0 1.4em;
+  margin: 0 0 1.4em;
   aspect-ratio: 16 / 10;
   background: #000;
   border: 1px solid color-mix(in srgb, var(--mono-tint, #9aa3b5) 45%, transparent);
@@ -353,5 +353,10 @@ a.crumb:focus-visible, .crumb-group a:focus-visible { outline: 2px solid var(--m
   aspect-ratio: auto;
   border: 0;
 }
+.app-stage.is-full { height: auto !important; }
+/* beágyazott programnál a panel szinte teljes egészében a programé */
+#panel.has-app { padding: 10px 10px 28px; }
+#panel.has-app::before { margin: -10px 0 0 -10px; }
+#panel.has-app > :not(.app-stage) { margin-left: clamp(6px, 2vw, 30px); margin-right: clamp(6px, 2vw, 30px); }
 .app-stage.is-full .app-full { top: 10px; right: 10px; bottom: auto; }
 html.app-open #crumbs, html.app-open #cells, html.app-open .site-foot { visibility: hidden; }
